@@ -513,16 +513,6 @@ onMounted(async () => {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map)
 
-  L.circle(campusCenter, {
-    radius: 260,
-    color: '#2563eb',
-    weight: 2,
-    fillColor: '#3b82f6',
-    fillOpacity: 0.08
-  })
-    .addTo(map)
-    .bindPopup('浙江大学紫金港校区示意中心')
-
   await loadData()
   await loadChargers()
 })
