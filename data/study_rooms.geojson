@@ -1,0 +1,86 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.0869, 30.3046]
+      },
+      "properties": {
+        "id": "sr_demo_001",
+        "name": "图书馆基础馆二楼自习区",
+        "building": "图书馆基础馆",
+        "floor": "2F",
+        "room": "2F-East",
+        "type": "quiet",
+        "open_time": "08:00",
+        "close_time": "22:30",
+        "seat_total": 120,
+        "seat_available": 36,
+        "has_power": true,
+        "noise_level": "quiet",
+        "power_outlet_level": "many",
+        "group_study": false,
+        "overnight_available": false,
+        "nearby_facilities": ["library", "canteen"],
+        "tags": ["quiet", "power_outlets", "individual_study"],
+        "description": "演示用虚假数据，适合安静自习和个人复习。"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.0848, 30.3061]
+      },
+      "properties": {
+        "id": "sr_demo_002",
+        "name": "东教学楼讨论自习区",
+        "building": "东教学楼",
+        "floor": "1F",
+        "room": "A101",
+        "type": "discussion",
+        "open_time": "08:30",
+        "close_time": "21:30",
+        "seat_total": 48,
+        "seat_available": 12,
+        "has_power": true,
+        "noise_level": "normal",
+        "power_outlet_level": "limited",
+        "group_study": true,
+        "overnight_available": false,
+        "nearby_facilities": ["teaching_building", "service_center"],
+        "tags": ["group_study", "discussion", "near_classrooms"],
+        "description": "演示用虚假数据，适合小组讨论和课间学习。"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [120.0892, 30.3032]
+      },
+      "properties": {
+        "id": "sr_demo_003",
+        "name": "西区通宵学习空间",
+        "building": "西区学生服务中心",
+        "floor": "1F",
+        "room": "Night-Study",
+        "type": "overnight",
+        "open_time": "00:00",
+        "close_time": "24:00",
+        "seat_total": 60,
+        "seat_available": 18,
+        "has_power": true,
+        "noise_level": "normal",
+        "power_outlet_level": "many",
+        "group_study": false,
+        "overnight_available": true,
+        "nearby_facilities": ["dormitory", "convenience_store"],
+        "tags": ["overnight", "power_outlets", "near_dormitory"],
+        "description": "演示用虚假数据，适合晚间或通宵学习。"
+      }
+    }
+  ]
+}
