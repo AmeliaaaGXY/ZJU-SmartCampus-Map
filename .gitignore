@@ -8,4 +8,4 @@ __pycache__/
 !.env.example
 .DS_Store
 Thumbs.db
-
+项目搭建指南.md
