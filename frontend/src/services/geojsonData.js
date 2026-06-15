@@ -59,7 +59,7 @@ async function loadDataset(key) {
   if (!loader) {
     return {
       data: EMPTY_FEATURE_COLLECTION,
-      error: '未知数据集'
+      error: '未知数据源。'
     }
   }
 
@@ -72,7 +72,7 @@ async function loadDataset(key) {
   } catch (error) {
     return {
       data: EMPTY_FEATURE_COLLECTION,
-      error: '后端暂不可用，当前展示空数据/示例数据。'
+      error: '后端暂不可用，当前展示空数据。'
     }
   }
 }
