@@ -17,6 +17,10 @@ export function getPois() {
   return api.get('/api/pois')
 }
 
+export function getBuildings() {
+  return api.get('/api/buildings')
+}
+
 export function getConfig() {
   return api.get('/api/config')
 }

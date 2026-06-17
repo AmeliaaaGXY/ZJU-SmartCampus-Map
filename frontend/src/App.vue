@@ -1,9 +1,11 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
+import CesiumView from './components/CesiumView.vue'
 import {
   getFeatureCoordinate,
   loadMapDatasets,
+  normalizeFeatureCollection,
   textOrUnknown
 } from './services/geojsonData'
 import {
@@ -11,6 +13,12 @@ import {
   getChargerStatus,
   recommendStudyRoom
 } from './services/api'
+import {
+  checkGeoServerStatus,
+  fetchWfsFeatures,
+  getWmsBaseUrl,
+  getWmsLayerOptions
+} from './services/geoServerService'
 
 /* ── Refs ────────────────────────────────────────────── */
 
@@ -33,6 +41,107 @@ const chargerFallbackUrl = ref('https://charger.philfan.cn/')
 const chargerApiConfigured = ref(false)
 const selectedChargerId = ref('')
 const legendExpanded = ref(false)
+const viewMode = ref('2d') // '2d' | '3d'
+
+function switchTo2D() {
+  viewMode.value = '2d'
+}
+
+function switchTo3D() {
+  // 切换到 3D 前，先主动销毁 2D 地图实例
+  if (map) {
+    map.remove()
+    map = null
+    markerLayer = null
+    chargerLayer = null
+    markerRefs.clear()
+    wmsLayer = null
+  }
+  viewMode.value = '3d'
+}
+
+/* ── GeoServer state ─────────────────────────────────── */
+
+const geoServerEnabled = ref(false)
+const geoServerReachable = ref(false)
+const geoServerMessage = ref('')
+const geoServerPois = ref([])
+const geoServerLayerReady = ref(false)
+
+async function toggleGeoServer() {
+  geoServerEnabled.value = !geoServerEnabled.value
+
+  if (!geoServerEnabled.value) {
+    removeWmsLayer()
+    geoServerPois.value = []
+    geoServerMessage.value = ''
+    geoServerLayerReady.value = false
+    return
+  }
+
+  geoServerMessage.value = '正在连接 GeoServer...'
+  const status = await checkGeoServerStatus()
+  geoServerReachable.value = status.reachable
+
+  if (!status.reachable) {
+    geoServerMessage.value = 'GeoServer 图层暂不可用，当前使用本地数据展示。'
+    geoServerLayerReady.value = false
+    return
+  }
+
+  addWmsLayer()
+  geoServerLayerReady.value = true
+
+  const wfsResult = await fetchWfsFeatures()
+  if (wfsResult.ok && wfsResult.data.features?.length) {
+    geoServerPois.value = wfsResult.data.features
+    geoServerMessage.value = `已通过 GeoServer 加载 ${wfsResult.data.features.length} 个 POI`
+  } else {
+    geoServerMessage.value = wfsResult.message || 'GeoServer WFS 暂不可用，WMS 叠加层已加载。'
+  }
+}
+
+/* ── GeoServer WMS layer ──────────────────────────────── */
+
+let wmsLayer = null
+
+function addWmsLayer() {
+  if (!map || wmsLayer) return
+  const url = getWmsBaseUrl()
+  if (!url) return
+  wmsLayer = L.tileLayer
+    .wms(url, {
+      ...getWmsLayerOptions(),
+      styles: '',
+      zIndex: 5
+    })
+    .addTo(map)
+    .bringToBack()
+}
+
+function removeWmsLayer() {
+  if (wmsLayer && map) {
+    map.removeLayer(wmsLayer)
+    wmsLayer = null
+  }
+}
+
+/* ── Computed: pois list uses GeoServer data when available ── */
+
+const displayPois = computed(() => {
+  if (geoServerEnabled.value && geoServerPois.value.length) {
+    return geoServerPois.value
+  }
+  return pois.value
+})
+
+/* ── Watch: re-render markers when GeoServer POI data changes ── */
+
+watch([geoServerEnabled, geoServerPois], () => {
+  if (map && markerLayer) {
+    renderMarkers()
+  }
+})
 
 /* ── Map state ───────────────────────────────────────── */
 
@@ -50,7 +159,7 @@ const X_PI = (Math.PI * 3000.0) / 180.0
 
 const activeItems = computed(() => {
   if (activePanel.value === 'study-rooms') return studyRooms.value
-  if (activePanel.value === 'pois') return pois.value
+  if (activePanel.value === 'pois') return displayPois.value
   if (activePanel.value === 'chargers') return chargerStations.value
   return []
 })
@@ -78,7 +187,12 @@ const filteredActiveItems = computed(() => {
 
 const activeEmptyText = computed(() => {
   if (activePanel.value === 'study-rooms') return '暂无自习室数据，等待数据组补充。'
-  if (activePanel.value === 'pois') return '暂无校园 POI 数据，等待数据组补充。'
+  if (activePanel.value === 'pois') {
+    if (geoServerEnabled.value && !geoServerReachable.value) {
+      return 'GeoServer 图层暂不可用，当前使用本地数据或空数据展示。'
+    }
+    return '暂无校园 POI 数据，等待数据组补充。'
+  }
   if (activePanel.value === 'chargers') return '充电桩 API 暂不可用，可使用 ZJU-Charger 外链兜底。'
   return '暂无数据。'
 })
@@ -302,7 +416,7 @@ function renderMarkers() {
     markerKey: (feature, index) => `study-rooms:${getFeatureId(feature, 'study_room', index)}`
   })
 
-  addPointMarkers(pois.value, {
+  addPointMarkers(displayPois.value, {
     color: '#047857',
     fillColor: '#10b981',
     popupBuilder: buildPoiPopup,
@@ -482,7 +596,9 @@ async function loadChargers() {
 
 /* ── Lifecycle ───────────────────────────────────────── */
 
-onMounted(async () => {
+async function init2DMap() {
+  if (!mapContainer.value) return
+
   map = L.map(mapContainer.value, {
     center: campusCenter,
     zoom: 16,
@@ -499,6 +615,24 @@ onMounted(async () => {
 
   await loadData()
   await loadChargers()
+
+  // Re-add WMS layer if GeoServer was enabled
+  if (geoServerEnabled.value && geoServerReachable.value) {
+    addWmsLayer()
+  }
+}
+
+onMounted(async () => {
+  await init2DMap()
+})
+
+// Re-initialize 2D map when switching back from 3D
+watch(viewMode, async (mode) => {
+  if (mode === '2d' && !map) {
+    // Wait for DOM update
+    await new Promise((resolve) => requestAnimationFrame(resolve))
+    await init2DMap()
+  }
 })
 
 onBeforeUnmount(() => {
@@ -518,7 +652,7 @@ onBeforeUnmount(() => {
         <h1>紫金港 WebGIS 信息平台</h1>
         <div class="status-strip" aria-label="项目状态摘要">
           <span>{{ studyRooms.length }} 个自习室</span>
-          <span>{{ pois.length }} 个 POI</span>
+          <span>{{ displayPois.length }} 个 POI</span>
           <span>{{ chargerStations.length }} 个充电桩</span>
         </div>
       </header>
@@ -688,26 +822,67 @@ onBeforeUnmount(() => {
           </div>
         </div>
       </section>
+
+      <!-- GeoServer toggle -->
+      <section class="panel-section geoserver-section">
+        <div class="geoserver-toggle-row">
+          <label class="toggle-label">
+            <input
+              type="checkbox"
+              :checked="geoServerEnabled"
+              @change="toggleGeoServer"
+            />
+            <span>GeoServer 图层</span>
+          </label>
+          <span v-if="geoServerEnabled && geoServerReachable" class="geoserver-badge on">已连接</span>
+          <span v-else-if="geoServerEnabled && !geoServerReachable" class="geoserver-badge off">不可用</span>
+        </div>
+        <p v-if="geoServerMessage" class="note geoserver-note" :class="{ warning: !geoServerReachable }">
+          {{ geoServerMessage }}
+        </p>
+      </section>
     </aside>
 
     <!-- ═══════════════ MAP AREA ═══════════════ -->
-    <section class="map-area" aria-label="紫金港校区二维地图">
-      <div class="map-toolbar">
-        <div>
-          <p class="toolbar-label">当前视图</p>
-          <strong>浙江大学紫金港校区</strong>
+    <section class="map-area" aria-label="紫金港校区地图">
+      <!-- 2D Map View -->
+      <template v-if="viewMode === '2d'">
+        <div class="map-toolbar">
+          <div>
+            <p class="toolbar-label">当前视图</p>
+            <strong>浙江大学紫金港校区</strong>
+          </div>
+          <div class="view-mode-toggle">
+            <button
+              class="view-mode-btn active"
+              type="button"
+              aria-label="二维地图视图（当前）"
+            >
+              2D
+            </button>
+            <button
+              class="view-mode-btn"
+              type="button"
+              @click="switchTo3D"
+              aria-label="切换到三维视图"
+            >
+              🌍 3D
+            </button>
+          </div>
         </div>
-        <span>Leaflet 二维地图</span>
-      </div>
-      <div ref="mapContainer" class="leaflet-map"></div>
+        <div ref="mapContainer" class="leaflet-map"></div>
 
-      <!-- Map legend overlay (always visible) -->
-      <div class="map-legend-overlay">
-        <span><span class="legend-dot study-room-dot"></span> 自习室</span>
-        <span><span class="legend-dot poi-dot"></span> POI</span>
-        <span><span class="legend-dot charger-available-dot"></span> 有空闲</span>
-        <span><span class="legend-dot charger-full-dot"></span> 无空闲</span>
-      </div>
+        <!-- Map legend overlay (always visible) -->
+        <div class="map-legend-overlay">
+          <span><span class="legend-dot study-room-dot"></span> 自习室</span>
+          <span><span class="legend-dot poi-dot"></span> POI</span>
+          <span><span class="legend-dot charger-available-dot"></span> 有空闲</span>
+          <span><span class="legend-dot charger-full-dot"></span> 无空闲</span>
+        </div>
+      </template>
+
+      <!-- 3D Cesium View -->
+      <CesiumView v-else @back="switchTo2D" />
     </section>
   </main>
 </template>

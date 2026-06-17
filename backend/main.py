@@ -438,6 +438,16 @@ def pois() -> dict:
     return read_geojson("campus_pois.geojson")
 
 
+@app.get("/api/buildings")
+def buildings() -> dict:
+    return read_geojson("buildings.geojson")
+
+
+@app.get("/api/zjg-boundary")
+def zjg_boundary() -> dict:
+    return read_geojson("zjg.geojson")
+
+
 @app.get("/api/config")
 def config() -> dict:
     return {
@@ -466,6 +476,62 @@ async def charger_status() -> dict:
 @app.get("/api/chargers/stations")
 async def charger_stations() -> dict:
     return await fetch_zju_charger_stations()
+
+
+def geoserver_base_url() -> str:
+    return os.getenv("GEOSERVER_URL", "http://127.0.0.1:8080/geoserver").rstrip("/")
+
+
+def geoserver_workspace() -> str:
+    return os.getenv("GEOSERVER_WORKSPACE", "webgis")
+
+
+@app.get("/api/geoserver/status")
+async def geoserver_status() -> dict:
+    """检测 GeoServer 是否可达。"""
+    base = geoserver_base_url()
+    url = f"{base}/rest/about/version.json"
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+        return {
+            "ok": True,
+            "reachable": True,
+            "message": "GeoServer 连接正常。",
+            "base_url": base,
+        }
+    except Exception:
+        return {
+            "ok": False,
+            "reachable": False,
+            "message": "GeoServer 暂不可用，请确认服务已启动。",
+            "base_url": base,
+        }
+
+
+@app.get("/api/geoserver/wfs")
+async def geoserver_wfs(layer: str = "campus_pois") -> dict:
+    """代理 GeoServer WFS GetFeature 请求，返回 GeoJSON。"""
+    base = geoserver_base_url()
+    workspace = geoserver_workspace()
+    url = (
+        f"{base}/{workspace}/ows"
+        f"?service=WFS&version=1.0.0&request=GetFeature"
+        f"&typeName={workspace}:{layer}"
+        f"&outputFormat=application/json"
+    )
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            data = response.json()
+        features = data.get("features")
+        if not isinstance(features, list):
+            return {"type": "FeatureCollection", "features": []}
+        return {"type": "FeatureCollection", "features": features}
+    except Exception:
+        return {"type": "FeatureCollection", "features": []}
 
 
 @app.post("/api/ai/recommend-study-room")
