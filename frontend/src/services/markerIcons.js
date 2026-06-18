@@ -27,16 +27,6 @@ const CATEGORY_COLORS = {
 
 /* ── Shared pin template ────────────────────────────── */
 
-function buildPinSvg(colorHex, iconSvgContent) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
-    <circle cx="16" cy="14" r="16" fill="${colorHex}" opacity="0.2"/>
-    <circle cx="16" cy="14" r="11" fill="none" stroke="#ffffff" stroke-width="2.5"/>
-    <circle cx="16" cy="14" r="10" fill="${colorHex}"/>
-    ${iconSvgContent}
-    <polygon points="16,40 12,31 20,31" fill="${colorHex}"/>
-  </svg>`
-}
-
 function makeDivIcon(svgContent, className) {
   return L.divIcon({
     html: svgContent,
@@ -132,7 +122,24 @@ export const POPUP_COLORS = {
   chargerUnavailable: '#9e504a'
 }
 
+/* ── Exported SVG builder for Cesium (3D pin icons) ───── */
+
+export function buildPinSvg(colorHex, iconSvgContent) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+    <circle cx="16" cy="14" r="16" fill="${colorHex}" opacity="0.2"/>
+    <circle cx="16" cy="14" r="11" fill="none" stroke="#ffffff" stroke-width="2.5"/>
+    <circle cx="16" cy="14" r="10" fill="${colorHex}"/>
+    ${iconSvgContent}
+    <polygon points="16,40 12,31 20,31" fill="${colorHex}"/>
+  </svg>`
+}
+
+export function svgToDataUrl(svg) {
+  return 'data:image/svg+xml,' + encodeURIComponent(svg)
+}
+
 /* ── Color map export (for legend / popup headers) ───── */
 
 export const POI_CATEGORY_COLORS = CATEGORY_COLORS
 export { COLORS as MARKER_COLORS }
+export { ICONS }

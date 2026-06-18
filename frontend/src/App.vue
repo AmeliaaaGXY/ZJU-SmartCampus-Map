@@ -383,9 +383,38 @@ function renderChargerMarkers() {
 
 /* ── Focus / navigation ──────────────────────────────── */
 
+const cesiumViewRef = ref(null)
+
+function ensureLayerVisible(layer) {
+  if (activeLayer.value !== 'all' && activeLayer.value !== layer) {
+    activeLayer.value = layer
+  }
+}
+
+function zoomToShowAndOpenPopup(marker, clusterGroup, latlng) {
+  // If the marker is clustered, zoom to show it individually first
+  if (clusterGroup) {
+    clusterGroup.zoomToShowLayer(marker, function () {
+      marker.openPopup()
+    })
+  } else {
+    marker.openPopup()
+  }
+}
+
 function focusChargerStation(station) {
+  if (viewMode.value === '3d') {
+    const stationId = getChargerId(station)
+    ensureLayerVisible('chargers')
+    if (cesiumViewRef.value) {
+      cesiumViewRef.value.focus3DEntity(`chargers:${stationId}`)
+    }
+    return
+  }
+
   const coordinate = getChargerCoordinate(station)
   if (!coordinate || !map) return
+  ensureLayerVisible('chargers')
   setSelectedCharger(station)
   map.flyTo([coordinate.latitude, coordinate.longitude], 17, { duration: 0.6 })
   const marker = markerRefs.get(`chargers:${getChargerId(station)}`)
@@ -398,14 +427,32 @@ function focusFeature(item, index) {
     return
   }
 
+  // 3D mode: delegate to CesiumView
+  if (viewMode.value === '3d') {
+    const featureId = getFeatureId(item, activePanel.value, index)
+    const layer = activePanel.value === 'study-rooms' ? 'study-rooms' : 'pois'
+    ensureLayerVisible(layer)
+    if (cesiumViewRef.value) {
+      cesiumViewRef.value.focus3DEntity(`${layer}:${featureId}`)
+    }
+    return
+  }
+
+  // 2D mode
   const coordinate = getFeatureCoordinate(item)
   if (!coordinate || !map) return
 
-  const markerKey = `${activePanel.value}:${getFeatureId(item, activePanel.value, index)}`
+  const layer = activePanel.value === 'study-rooms' ? 'study-rooms' : 'pois'
+  ensureLayerVisible(layer)
+
+  const markerKey = `${layer}:${getFeatureId(item, layer, index)}`
   const marker = markerRefs.get(markerKey)
+  const clusterGroup = layer === 'study-rooms' ? studyClusterGroup : poiClusterGroup
 
   map.flyTo([coordinate.latitude, coordinate.longitude], 17, { duration: 0.6 })
-  if (marker) marker.openPopup()
+  if (marker) {
+    zoomToShowAndOpenPopup(marker, clusterGroup, [coordinate.latitude, coordinate.longitude])
+  }
 }
 
 function findStudyRoomByRecommendation(recommendation) {
@@ -850,7 +897,7 @@ onBeforeUnmount(() => {
       </template>
 
       <!-- 3D Cesium View -->
-      <CesiumView v-else @back="switchTo2D" :active-layer="activeLayer" @update:active-layer="activeLayer = $event" />
+      <CesiumView v-else ref="cesiumViewRef" @back="switchTo2D" :active-layer="activeLayer" @update:active-layer="activeLayer = $event" />
     </section>
   </main>
 </template>
