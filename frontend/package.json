@@ -12,6 +12,7 @@
     "axios": "^1.7.9",
     "cesium": "^1.142.0",
     "leaflet": "^1.9.4",
+    "leaflet.markercluster": "^1.5.3",
     "vite": "^6.0.0",
     "vite-plugin-cesium": "^1.2.23",
     "vue": "^3.5.0"

@@ -6,7 +6,8 @@ import {
   getFeatureCoordinate,
   loadMapDatasets,
   normalizeFeatureCollection,
-  textOrUnknown
+  textOrUnknown,
+  bd09ToWgs84
 } from './services/geojsonData'
 import { getStudyRoomIcon, getPoiIcon, getChargerIcon } from './services/markerIcons'
 import { buildStudyRoomPopup, buildPoiPopup, buildChargerPopup } from './services/popupBuilders'
@@ -153,9 +154,6 @@ let chargerLayer = null
 const markerRefs = new Map()
 
 const campusCenter = [30.3046, 120.0869]
-const EARTH_RADIUS = 6378245.0
-const EE = 0.006693421622965943
-const X_PI = (Math.PI * 3000.0) / 180.0
 
 /* ── Computed ────────────────────────────────────────── */
 
@@ -247,91 +245,6 @@ function getItemCssClass() {
 }
 
 /* ── Coordinate transforms ───────────────────────────── */
-
-function transformLat(longitudeOffset, latitudeOffset) {
-  let result =
-    -100.0 +
-    2.0 * longitudeOffset +
-    3.0 * latitudeOffset +
-    0.2 * latitudeOffset * latitudeOffset +
-    0.1 * longitudeOffset * latitudeOffset +
-    0.2 * Math.sqrt(Math.abs(longitudeOffset))
-  result +=
-    ((20.0 * Math.sin(6.0 * longitudeOffset * Math.PI) +
-      20.0 * Math.sin(2.0 * longitudeOffset * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((20.0 * Math.sin(latitudeOffset * Math.PI) +
-      40.0 * Math.sin((latitudeOffset / 3.0) * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((160.0 * Math.sin((latitudeOffset / 12.0) * Math.PI) +
-      320 * Math.sin((latitudeOffset * Math.PI) / 30.0)) *
-      2.0) /
-    3.0
-  return result
-}
-
-function transformLon(longitudeOffset, latitudeOffset) {
-  let result =
-    300.0 +
-    longitudeOffset +
-    2.0 * latitudeOffset +
-    0.1 * longitudeOffset * longitudeOffset +
-    0.1 * longitudeOffset * latitudeOffset +
-    0.1 * Math.sqrt(Math.abs(longitudeOffset))
-  result +=
-    ((20.0 * Math.sin(6.0 * longitudeOffset * Math.PI) +
-      20.0 * Math.sin(2.0 * longitudeOffset * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((20.0 * Math.sin(longitudeOffset * Math.PI) +
-      40.0 * Math.sin((longitudeOffset / 3.0) * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((150.0 * Math.sin((longitudeOffset / 12.0) * Math.PI) +
-      300.0 * Math.sin((longitudeOffset / 30.0) * Math.PI)) *
-      2.0) /
-    3.0
-  return result
-}
-
-function gcj02ToWgs84(latitude, longitude) {
-  const dLat = transformLat(longitude - 105.0, latitude - 35.0)
-  const dLon = transformLon(longitude - 105.0, latitude - 35.0)
-  const radLat = (latitude / 180.0) * Math.PI
-  let magic = Math.sin(radLat)
-  magic = 1 - EE * magic * magic
-  const sqrtMagic = Math.sqrt(magic)
-  const adjustedLat =
-    (dLat * 180.0) / (((EARTH_RADIUS * (1 - EE)) / (magic * sqrtMagic)) * Math.PI)
-  const adjustedLon =
-    (dLon * 180.0) / ((EARTH_RADIUS / sqrtMagic) * Math.cos(radLat) * Math.PI)
-  return {
-    latitude: latitude * 2 - (latitude + adjustedLat),
-    longitude: longitude * 2 - (longitude + adjustedLon)
-  }
-}
-
-function bd09ToGcj02(latitude, longitude) {
-  const x = longitude - 0.0065
-  const y = latitude - 0.006
-  const z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * X_PI)
-  const theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * X_PI)
-  return {
-    latitude: z * Math.sin(theta),
-    longitude: z * Math.cos(theta)
-  }
-}
-
-function bd09ToWgs84(coordinate) {
-  const gcjCoordinate = bd09ToGcj02(coordinate.latitude, coordinate.longitude)
-  return gcj02ToWgs84(gcjCoordinate.latitude, gcjCoordinate.longitude)
-}
 
 function getChargerCoordinate(station) {
   const latitude = Number(station?.latitude)
