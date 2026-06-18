@@ -8,6 +8,8 @@ import {
   normalizeFeatureCollection,
   textOrUnknown
 } from './services/geojsonData'
+import { getStudyRoomIcon, getPoiIcon, getChargerIcon, POI_CATEGORY_COLORS, MARKER_COLORS } from './services/markerIcons'
+import { buildStudyRoomPopup, buildPoiPopup, buildChargerPopup } from './services/popupBuilders'
 import {
   getChargerStations,
   getChargerStatus,
@@ -338,66 +340,14 @@ function getChargerCoordinate(station) {
   return bd09ToWgs84({ latitude, longitude })
 }
 
-/* ── Popup builders ──────────────────────────────────── */
-
-function buildChargerPopup(station) {
-  return `
-    <strong>${textOrUnknown(station.name)}</strong>
-    <div>服务商：${textOrUnknown(station.provider)}</div>
-    <div>校区：${textOrUnknown(station.campus_name || station.campus)}</div>
-    <div>空闲 / 已用 / 总数：${textOrUnknown(station.available_ports)} / ${textOrUnknown(station.used_ports)} / ${textOrUnknown(station.total_ports)}</div>
-    <div>故障数：${textOrUnknown(station.error_ports)}</div>
-    <div>更新时间：${textOrUnknown(station.updated_at)}</div>
-  `
-}
-
-function buildStudyRoomPopup(feature) {
-  const properties = feature.properties || {}
-  return `
-    <strong>${textOrUnknown(properties.name)}</strong>
-    <div>建筑：${textOrUnknown(properties.building)}</div>
-    <div>楼层 / 房间：${textOrUnknown(properties.floor)} ${textOrUnknown(properties.room)}</div>
-    <div>开放时间：${textOrUnknown(properties.open_time)} - ${textOrUnknown(properties.close_time)}</div>
-    <div>可用座位：${textOrUnknown(properties.seat_available)} / ${textOrUnknown(properties.seat_total)}</div>
-    <div>是否有插座：${textOrUnknown(properties.has_power)}</div>
-    <div>说明：${textOrUnknown(properties.description)}</div>
-  `
-}
-
-function buildPoiPopup(feature) {
-  const properties = feature.properties || {}
-  return `
-    <strong>${textOrUnknown(properties.name)}</strong>
-    <div>类别：${textOrUnknown(properties.category)}</div>
-    <div>适用人群：${textOrUnknown(properties.audience)}</div>
-    <div>开放时间：${textOrUnknown(properties.open_time)}</div>
-    <div>说明：${textOrUnknown(properties.description)}</div>
-  `
-}
-
 /* ── Marker rendering ────────────────────────────────── */
-
-function getChargerMarkerStyle(station, isSelected = false) {
-  const hasAvailablePorts = Number(station?.available_ports) > 0
-  return {
-    radius: isSelected ? 12 : 8,
-    color: isSelected ? '#0f172a' : hasAvailablePorts ? '#047857' : '#b91c1c',
-    weight: isSelected ? 4 : 2,
-    fillColor: hasAvailablePorts ? '#22c55e' : '#ef4444',
-    fillOpacity: isSelected ? 0.95 : 0.86
-  }
-}
 
 function addPointMarkers(features, options) {
   features.forEach((feature, index) => {
     const coordinate = getFeatureCoordinate(feature)
     if (!coordinate) return
-    const marker = L.circleMarker([coordinate.latitude, coordinate.longitude], {
-      radius: 8,
-      color: options.color,
-      weight: 2,
-      fillColor: options.fillColor,
-      fillOpacity: 0.85
+    const marker = L.marker([coordinate.latitude, coordinate.longitude], {
+      icon: options.getIcon(feature)
     })
       .addTo(markerLayer)
       .bindPopup(options.popupBuilder(feature))
@@ -410,15 +360,13 @@ function renderMarkers() {
   markerRefs.clear()
 
   addPointMarkers(studyRooms.value, {
-    color: '#1d4ed8',
-    fillColor: '#3b82f6',
+    getIcon: () => getStudyRoomIcon(),
     popupBuilder: buildStudyRoomPopup,
     markerKey: (feature, index) => `study-rooms:${getFeatureId(feature, 'study_room', index)}`
   })
 
   addPointMarkers(displayPois.value, {
-    color: '#047857',
-    fillColor: '#10b981',
+    getIcon: (feature) => getPoiIcon((feature.properties || {}).category),
     popupBuilder: buildPoiPopup,
     markerKey: (feature, index) => `pois:${getFeatureId(feature, 'poi', index)}`
   })
@@ -433,8 +381,8 @@ function resetSelectedChargerMarker() {
     (station) => getChargerId(station) === selectedChargerId.value
   )
   if (previousMarker && previousStation) {
-    previousMarker.setStyle(getChargerMarkerStyle(previousStation))
-    previousMarker.setRadius(8)
+    const hasAvail = Number(previousStation?.available_ports) > 0
+    previousMarker.setIcon(getChargerIcon(hasAvail, false))
     previousMarker.unbindTooltip()
   }
 }
@@ -444,8 +392,8 @@ function setSelectedCharger(station) {
   selectedChargerId.value = getChargerId(station)
   const marker = markerRefs.get(`chargers:${selectedChargerId.value}`)
   if (!marker) return
-  marker.setStyle(getChargerMarkerStyle(station, true))
-  marker.setRadius(12)
+  const hasAvail = Number(station?.available_ports) > 0
+  marker.setIcon(getChargerIcon(hasAvail, true))
   marker
     .bindTooltip(textOrUnknown(station.name), {
       permanent: true,
@@ -462,9 +410,10 @@ function renderChargerMarkers() {
   chargerStations.value.forEach((station, index) => {
     const coordinate = getChargerCoordinate(station)
     if (!coordinate) return
-    const marker = L.circleMarker(
+    const hasAvailable = Number(station?.available_ports) > 0
+    const marker = L.marker(
       [coordinate.latitude, coordinate.longitude],
-      getChargerMarkerStyle(station)
+      { icon: getChargerIcon(hasAvailable, false) }
     )
       .addTo(chargerLayer)
       .bindPopup(buildChargerPopup(station))
