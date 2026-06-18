@@ -36,10 +36,18 @@ const CAMERA_HEIGHT = 2500
 /* ── Popup card CSS injected into Cesium iframe ────────── */
 
 function cesiumPopupWrap(html) {
-  return `<style>
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: Inter, "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif; font-size: 13px; color: #3b3a39; }
-.popup-card { max-width: 240px; border-radius: 8px; overflow: hidden; box-shadow: 0 3px 16px rgba(0,0,0,0.1); font-family: inherit; line-height: 1.5; }
+body {
+  font-family: Inter, "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 13px; color: #3b3a39; background: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+.popup-card { max-width: 240px; border-radius: 8px; overflow: hidden; box-shadow: 0 3px 16px rgba(0,0,0,0.1); line-height: 1.5; }
 .popup-card-header { padding: 10px 14px; color: #ffffff; }
 .popup-card-title { font-size: 14px; font-weight: 700; line-height: 1.3; }
 .popup-card-subtitle { margin-top: 2px; font-size: 10px; opacity: 0.85; }
@@ -48,7 +56,10 @@ body { font-family: Inter, "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei",
 .attr-label { color: #999691; white-space: nowrap; }
 .attr-value { color: #3b3a39; font-weight: 500; }
 .popup-card-desc { padding: 8px 14px 10px; border-top: 1px solid #eae6df; background: #ffffff; color: #999691; font-size: 10px; line-height: 1.55; }
-</style>${html}`
+</style>
+</head>
+<body>${html}</body>
+</html>`
 }
 
 /* ── Basemap ──────────────────────────────────────────── */

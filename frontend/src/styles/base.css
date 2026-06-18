@@ -1241,15 +1241,6 @@ h1 {
   font-family: var(--font-body);
 }
 
-.cesium-infobox-custom .cesium-infoBox-description .popup-card {
-  box-shadow: none;
-  border-radius: 0;
-}
-
-.cesium-infobox-custom .cesium-infoBox-iframe {
-  display: none;
-}
-
 .cesium-infobox-custom .cesium-infoBox-close {
   top: 8px;
   right: 8px;
