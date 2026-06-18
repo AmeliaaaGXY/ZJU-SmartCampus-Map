@@ -669,26 +669,6 @@ h1 {
   border-radius: 999px;
 }
 
-.study-room-dot {
-  border: 1.5px solid var(--color-study-room);
-  background: var(--color-study-room);
-}
-
-.poi-dot {
-  border: 1.5px solid var(--color-poi);
-  background: var(--color-poi);
-}
-
-.charger-available-dot {
-  border: 1.5px solid var(--color-success);
-  background: var(--color-success);
-}
-
-.charger-full-dot {
-  border: 1.5px solid var(--color-error);
-  background: var(--color-error);
-}
-
 /* ── Map area ────────────────────────────────────────── */
 
 .map-area {

@@ -754,19 +754,43 @@ onBeforeUnmount(() => {
         </button>
         <div v-show="legendExpanded" class="legend-grid">
           <div class="legend-row">
-            <span class="legend-dot study-room-dot"></span>
+            <span class="legend-dot" style="background:#3b82f6;border-color:#3b82f6;"></span>
             <span>自习室</span>
           </div>
           <div class="legend-row">
-            <span class="legend-dot poi-dot"></span>
-            <span>校园 POI</span>
+            <span class="legend-dot" style="background:#8b5cf6;border-color:#8b5cf6;"></span>
+            <span>图书馆</span>
           </div>
           <div class="legend-row">
-            <span class="legend-dot charger-available-dot"></span>
+            <span class="legend-dot" style="background:#f59e0b;border-color:#f59e0b;"></span>
+            <span>教学楼</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span>
+            <span>食堂</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#10b981;border-color:#10b981;"></span>
+            <span>景观</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#6366f1;border-color:#6366f1;"></span>
+            <span>服务设施</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#ec4899;border-color:#ec4899;"></span>
+            <span>博物馆</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#6b7280;border-color:#6b7280;"></span>
+            <span>其他</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#22c55e;border-color:#22c55e;"></span>
             <span>有空闲充电桩</span>
           </div>
           <div class="legend-row">
-            <span class="legend-dot charger-full-dot"></span>
+            <span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span>
             <span>无空闲充电桩</span>
           </div>
         </div>
@@ -823,10 +847,16 @@ onBeforeUnmount(() => {
 
         <!-- Map legend overlay (always visible) -->
         <div class="map-legend-overlay">
-          <span><span class="legend-dot study-room-dot"></span> 自习室</span>
-          <span><span class="legend-dot poi-dot"></span> POI</span>
-          <span><span class="legend-dot charger-available-dot"></span> 有空闲</span>
-          <span><span class="legend-dot charger-full-dot"></span> 无空闲</span>
+          <span><span class="legend-dot" style="background:#3b82f6;border-color:#3b82f6;"></span> 自习室</span>
+          <span><span class="legend-dot" style="background:#8b5cf6;border-color:#8b5cf6;"></span> 图书馆</span>
+          <span><span class="legend-dot" style="background:#f59e0b;border-color:#f59e0b;"></span> 教学</span>
+          <span><span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span> 食堂</span>
+          <span><span class="legend-dot" style="background:#10b981;border-color:#10b981;"></span> 景观</span>
+          <span><span class="legend-dot" style="background:#6366f1;border-color:#6366f1;"></span> 服务</span>
+          <span><span class="legend-dot" style="background:#ec4899;border-color:#ec4899;"></span> 博物馆</span>
+          <span><span class="legend-dot" style="background:#6b7280;border-color:#6b7280;"></span> 其他</span>
+          <span><span class="legend-dot" style="background:#22c55e;border-color:#22c55e;"></span> 空闲桩</span>
+          <span><span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span> 无空闲桩</span>
         </div>
       </template>
 
