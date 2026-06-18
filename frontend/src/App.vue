@@ -850,7 +850,7 @@ onBeforeUnmount(() => {
       </template>
 
       <!-- 3D Cesium View -->
-      <CesiumView v-else @back="switchTo2D" />
+      <CesiumView v-else @back="switchTo2D" :active-layer="activeLayer" @update:active-layer="activeLayer = $event" />
     </section>
   </main>
 </template>

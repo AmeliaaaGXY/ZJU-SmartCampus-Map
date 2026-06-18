@@ -1,10 +1,15 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as Cesium from 'cesium'
-import { getStudyRooms, getPois, getBuildings } from '../services/api'
-import { normalizeFeatureCollection, textOrUnknown, getFeatureCoordinate } from '../services/geojsonData'
+import { getStudyRooms, getPois, getBuildings, getChargerStations } from '../services/api'
+import { normalizeFeatureCollection, textOrUnknown, getFeatureCoordinate, bd09ToWgs84 } from '../services/geojsonData'
+import { buildStudyRoomPopup, buildPoiPopup, buildChargerPopup } from '../services/popupBuilders'
 
-const emit = defineEmits(['back'])
+const props = defineProps({
+  activeLayer: { type: String, default: 'all' }
+})
+
+const emit = defineEmits(['back', 'update:activeLayer'])
 
 const containerRef = ref(null)
 const isLoading = ref(true)
@@ -15,6 +20,9 @@ const activeBasemap = ref('osm')
 let viewer = null
 let curImageryLayer = null
 const dataSources = []
+const studyRoomEntities = []
+const poiEntities = []
+const chargerEntities = []
 
 /* ── Campus center (WGS84) ────────────────────────────── */
 
@@ -98,7 +106,7 @@ function switchBasemap(id) {
 /* ── Data loading ────────────────────────────────────── */
 
 async function loadGeoJsonData() {
-  const results = { studyRooms: [], pois: [], buildings: [], campusBoundary: [] }
+  const results = { studyRooms: [], pois: [], chargers: [], buildings: [], campusBoundary: [] }
 
   try {
     const srResponse = await getStudyRooms()
@@ -113,6 +121,14 @@ async function loadGeoJsonData() {
   try {
     const buildingResponse = await getBuildings()
     results.buildings = normalizeFeatureCollection(buildingResponse.data).features
+  } catch { /* fall through */ }
+
+  // Load charger stations
+  try {
+    const chargerRes = await getChargerStations()
+    if (chargerRes.data?.ok && Array.isArray(chargerRes.data.stations)) {
+      results.chargers = chargerRes.data.stations
+    }
   } catch { /* fall through */ }
 
   // Load campus boundary from backend API
@@ -156,29 +172,6 @@ function createPinCanvas(hexColor, label) {
   return canvas.toDataURL()
 }
 
-/* ── Description builders ────────────────────────────── */
-
-function buildDescription(feature, type) {
-  const props = feature.properties || {}
-  const rows = [
-    '<div style="font-family:sans-serif;font-size:13px;line-height:1.6;color:#3b3a39;">',
-    `<strong style="font-size:14px;display:block;margin-bottom:4px;">${textOrUnknown(props.name)}</strong>`
-  ]
-
-  if (type === 'study-room') {
-    rows.push(`<div>🏢 ${textOrUnknown(props.building)}</div>`)
-    rows.push(`<div>📍 ${textOrUnknown(props.floor)} ${textOrUnknown(props.room)}</div>`)
-    rows.push(`<div>🕐 ${textOrUnknown(props.open_time)} - ${textOrUnknown(props.close_time)}</div>`)
-    rows.push(`<div>💺 ${textOrUnknown(props.seat_available)}/${textOrUnknown(props.seat_total)}</div>`)
-  } else {
-    rows.push(`<div>📂 ${textOrUnknown(props.category)}</div>`)
-    rows.push(`<div>🕐 ${textOrUnknown(props.open_time)}</div>`)
-  }
-  rows.push(`<div style="margin-top:4px;color:#666;">${textOrUnknown(props.description)}</div>`)
-  rows.push('</div>')
-  return rows.join('')
-}
-
 /* ── Entity rendering ────────────────────────────────── */
 
 function addPointEntities(features, options) {
@@ -191,7 +184,7 @@ function addPointEntities(features, options) {
     const props = feature.properties || {}
     const name = props.name || '未知地点'
 
-    viewer.entities.add({
+    const entity = viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(coord.longitude, coord.latitude),
       billboard: {
         image: createPinCanvas(options.color, options.label),
@@ -212,8 +205,10 @@ function addPointEntities(features, options) {
         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1000)
       },
-      description: buildDescription(feature, options.type)
+      description: options.popupBuilder(feature)
     })
+
+    options.entityArray.push(entity)
   })
 }
 
@@ -292,6 +287,7 @@ function initCesium() {
   })
 
   viewer.imageryLayers.removeAll()
+  viewer.infoBox.container.classList.add('cesium-infobox-custom')
   viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#1a1a2e')
   viewer.cesiumWidget.creditContainer.style.display = 'none'
   viewer.scene.globe.depthTestAgainstTerrain = true
@@ -312,15 +308,57 @@ function initCesium() {
   })
 }
 
+/* ── Charger entities ────────────────────────────────── */
+
+function addChargerEntities(stations) {
+  if (!stations.length) return
+  stations.forEach((station) => {
+    const lat = Number(station?.latitude)
+    const lng = Number(station?.longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+    const wgsCoord = bd09ToWgs84({ latitude: lat, longitude: lng })
+    const hasAvailable = Number(station?.available_ports) > 0
+    const color = hasAvailable ? '#22c55e' : '#ef4444'
+    const label = '⚡'
+
+    const entity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(wgsCoord.longitude, wgsCoord.latitude),
+      billboard: {
+        image: createPinCanvas(color, label),
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        scale: 0.75,
+        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000)
+      },
+      label: {
+        text: station.name || '未知站点',
+        font: '12px "Microsoft YaHei", sans-serif',
+        fillColor: Cesium.Color.fromCssColorString('#1a1a2e'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2.5,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.TOP,
+        pixelOffset: new Cesium.Cartesian2(0, 18),
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1000)
+      },
+      description: buildChargerPopup(station)
+    })
+
+    chargerEntities.push(entity)
+  })
+}
+
 /* ── Render all data ─────────────────────────────────── */
 
 async function renderData() {
   isLoading.value = true
   loadMessage.value = '正在加载三维数据...'
 
-  const { studyRooms, pois, buildings, campusBoundary } = await loadGeoJsonData()
+  const { studyRooms, pois, chargers, buildings, campusBoundary } = await loadGeoJsonData()
 
-  const total = studyRooms.length + pois.length + buildings.length + campusBoundary.length
+  const total = studyRooms.length + pois.length + chargers.length + buildings.length + campusBoundary.length
   if (total === 0) {
     dataEmpty.value = true
     loadMessage.value = '暂无可用于三维展示的数据。'
@@ -330,12 +368,30 @@ async function renderData() {
 
   addCampusBoundary(campusBoundary)
   addBuildingEntities(buildings)
-  addPointEntities(studyRooms, { type: 'study-room', color: '#3b82f6', label: '📖' })
-  addPointEntities(pois, { type: 'poi', color: '#10b981', label: '📍' })
+  addPointEntities(studyRooms, { color: '#3b82f6', label: '📖', popupBuilder: buildStudyRoomPopup, entityArray: studyRoomEntities })
+  addPointEntities(pois, { color: '#10b981', label: '📍', popupBuilder: buildPoiPopup, entityArray: poiEntities })
+  addChargerEntities(chargers)
 
-  loadMessage.value = `已加载 ${studyRooms.length} 自习室 · ${pois.length} POI · ${buildings.length} 建筑 · ${campusBoundary.length} 校区边界`
+  loadMessage.value = `已加载 ${studyRooms.length} 自习室 · ${pois.length} POI · ${chargers.length} 充电桩 · ${buildings.length} 建筑 · ${campusBoundary.length} 校区边界`
   isLoading.value = false
 }
+
+/* ── Layer visibility ────────────────────────────────── */
+
+function applyLayerVisibility() {
+  const layer = props.activeLayer
+  const showStudy = layer === 'all' || layer === 'study-rooms'
+  const showPoi = layer === 'all' || layer === 'pois'
+  const showCharger = layer === 'all' || layer === 'chargers'
+
+  studyRoomEntities.forEach(e => { e.show = showStudy })
+  poiEntities.forEach(e => { e.show = showPoi })
+  chargerEntities.forEach(e => { e.show = showCharger })
+}
+
+watch(() => props.activeLayer, () => {
+  applyLayerVisibility()
+})
 
 /* ── Lifecycle ───────────────────────────────────────── */
 
@@ -373,6 +429,13 @@ onBeforeUnmount(() => {
         <button class="basemap-btn" :class="{ active: activeBasemap === 'osm' }" type="button" @click="switchBasemap('osm')">OSM 街道</button>
         <button class="basemap-btn" :class="{ active: activeBasemap === 'esri' }" type="button" @click="switchBasemap('esri')">卫星影像</button>
         <button class="basemap-btn" :class="{ active: activeBasemap === 'local' }" type="button" @click="switchBasemap('local')">本地离线</button>
+      </div>
+
+      <div class="layer-toggle cesium-layer-toggle">
+        <button class="layer-btn" :class="{ active: activeLayer === 'all' }" type="button" @click="emit('update:activeLayer', 'all')">全部</button>
+        <button class="layer-btn" :class="{ active: activeLayer === 'study-rooms' }" type="button" @click="emit('update:activeLayer', 'study-rooms')">自习室</button>
+        <button class="layer-btn" :class="{ active: activeLayer === 'pois' }" type="button" @click="emit('update:activeLayer', 'pois')">POI</button>
+        <button class="layer-btn" :class="{ active: activeLayer === 'chargers' }" type="button" @click="emit('update:activeLayer', 'chargers')">充电桩</button>
       </div>
     </div>
 

@@ -1213,3 +1213,68 @@ h1 {
   font-weight: 700;
   font-family: var(--font-body);
 }
+
+/* ── Cesium InfoBox override ───────────────────────────── */
+
+.cesium-infobox-custom {
+  max-width: 260px;
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.12);
+  background: transparent;
+}
+
+.cesium-infobox-custom .cesium-infoBox {
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.cesium-infobox-custom .cesium-infoBox-title {
+  display: none;
+}
+
+.cesium-infobox-custom .cesium-infoBox-description {
+  padding: 0;
+  font-family: var(--font-body);
+}
+
+.cesium-infobox-custom .cesium-infoBox-description .popup-card {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.cesium-infobox-custom .cesium-infoBox-iframe {
+  display: none;
+}
+
+.cesium-infobox-custom .cesium-infoBox-close {
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+/* ── Cesium layer toggle dark theme ───────────────────── */
+
+.cesium-layer-toggle {
+  margin-left: 0;
+}
+
+.cesium-layer-toggle .layer-btn {
+  color: #a0c8e8;
+  border-color: rgba(97, 200, 255, 0.25);
+  background: rgba(10, 20, 34, 0.5);
+}
+
+.cesium-layer-toggle .layer-btn:hover {
+  color: #ffffff;
+  border-color: #61c8ff;
+}
+
+.cesium-layer-toggle .layer-btn.active {
+  color: #ffffff;
+  border-color: #61c8ff;
+  background: rgba(97, 200, 255, 0.2);
+}
