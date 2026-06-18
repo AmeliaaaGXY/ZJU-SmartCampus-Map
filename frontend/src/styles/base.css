@@ -1155,3 +1155,36 @@ h1 {
   background: transparent;
   border: none;
 }
+
+/* ── Layer toggle ─────────────────────────────────────── */
+
+.layer-toggle {
+  display: flex;
+  gap: 3px;
+  margin-left: 8px;
+}
+
+.layer-btn {
+  padding: 3px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.layer-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.layer-btn.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: 600;
+}

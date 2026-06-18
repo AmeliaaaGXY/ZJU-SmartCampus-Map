@@ -45,6 +45,7 @@ const chargerApiConfigured = ref(false)
 const selectedChargerId = ref('')
 const legendExpanded = ref(false)
 const viewMode = ref('2d') // '2d' | '3d'
+const activeLayer = ref('all') // 'all' | 'study-rooms' | 'pois' | 'chargers'
 
 function switchTo2D() {
   viewMode.value = '2d'
@@ -754,6 +755,12 @@ onBeforeUnmount(() => {
             >
               🌍 3D
             </button>
+          </div>
+          <div class="layer-toggle">
+            <button class="layer-btn" :class="{ active: activeLayer === 'all' }" type="button" @click="activeLayer = 'all'">全部</button>
+            <button class="layer-btn" :class="{ active: activeLayer === 'study-rooms' }" type="button" @click="activeLayer = 'study-rooms'">自习室</button>
+            <button class="layer-btn" :class="{ active: activeLayer === 'pois' }" type="button" @click="activeLayer = 'pois'">POI</button>
+            <button class="layer-btn" :class="{ active: activeLayer === 'chargers' }" type="button" @click="activeLayer = 'chargers'">充电桩</button>
           </div>
         </div>
         <div ref="mapContainer" class="leaflet-map"></div>
