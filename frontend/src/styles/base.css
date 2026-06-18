@@ -1188,3 +1188,28 @@ h1 {
   color: var(--color-accent);
   font-weight: 600;
 }
+
+/* ── Cluster icon ──────────────────────────────────────── */
+
+.custom-cluster-icon {
+  background: transparent;
+  border: none;
+}
+
+.cluster-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(194, 100, 79, 0.3);
+}
+
+.cluster-icon span {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-body);
+}

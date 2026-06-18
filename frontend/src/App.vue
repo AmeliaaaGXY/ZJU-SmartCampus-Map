@@ -1,6 +1,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
+import 'leaflet.markercluster'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import CesiumView from './components/CesiumView.vue'
 import {
   getFeatureCoordinate,
@@ -56,7 +59,8 @@ function switchTo3D() {
   if (map) {
     map.remove()
     map = null
-    markerLayer = null
+    studyClusterGroup = null
+    poiClusterGroup = null
     chargerLayer = null
     markerRefs.clear()
     wmsLayer = null
@@ -150,7 +154,8 @@ watch([geoServerEnabled, geoServerPois], () => {
 /* ── Map state ───────────────────────────────────────── */
 
 let map = null
-let markerLayer = null
+let studyClusterGroup = null
+let poiClusterGroup = null
 let chargerLayer = null
 const markerRefs = new Map()
 
@@ -256,34 +261,74 @@ function getChargerCoordinate(station) {
 
 /* ── Marker rendering ────────────────────────────────── */
 
-function addPointMarkers(features, options) {
-  features.forEach((feature, index) => {
-    const coordinate = getFeatureCoordinate(feature)
-    if (!coordinate) return
-    const marker = L.marker([coordinate.latitude, coordinate.longitude], {
-      icon: options.getIcon(feature)
-    })
-      .addTo(markerLayer)
-      .bindPopup(options.popupBuilder(feature))
-    markerRefs.set(options.markerKey(feature, index), marker)
+function createClusterGroup() {
+  return L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    iconCreateFunction: function (cluster) {
+      const count = cluster.getChildCount()
+      return L.divIcon({
+        html: `<div class="cluster-icon"><span>${count}</span></div>`,
+        className: 'custom-cluster-icon',
+        iconSize: L.point(40, 40)
+      })
+    }
   })
 }
 
 function renderMarkers() {
-  markerLayer.clearLayers()
-  markerRefs.clear()
-
-  addPointMarkers(studyRooms.value, {
-    getIcon: () => getStudyRoomIcon(),
-    popupBuilder: buildStudyRoomPopup,
-    markerKey: (feature, index) => `study-rooms:${getFeatureId(feature, 'study_room', index)}`
+  // Rebuild study room cluster
+  if (studyClusterGroup) { map.removeLayer(studyClusterGroup) }
+  studyClusterGroup = createClusterGroup()
+  studyRooms.value.forEach((feature, index) => {
+    const coordinate = getFeatureCoordinate(feature)
+    if (!coordinate) return
+    const marker = L.marker([coordinate.latitude, coordinate.longitude], {
+      icon: getStudyRoomIcon()
+    }).bindPopup(buildStudyRoomPopup(feature))
+    studyClusterGroup.addLayer(marker)
+    markerRefs.set(`study-rooms:${getFeatureId(feature, 'study_room', index)}`, marker)
   })
 
-  addPointMarkers(displayPois.value, {
-    getIcon: (feature) => getPoiIcon((feature.properties || {}).category),
-    popupBuilder: buildPoiPopup,
-    markerKey: (feature, index) => `pois:${getFeatureId(feature, 'poi', index)}`
+  // Rebuild POI cluster
+  if (poiClusterGroup) { map.removeLayer(poiClusterGroup) }
+  poiClusterGroup = createClusterGroup()
+  displayPois.value.forEach((feature, index) => {
+    const coordinate = getFeatureCoordinate(feature)
+    if (!coordinate) return
+    const marker = L.marker([coordinate.latitude, coordinate.longitude], {
+      icon: getPoiIcon((feature.properties || {}).category)
+    }).bindPopup(buildPoiPopup(feature))
+    poiClusterGroup.addLayer(marker)
+    markerRefs.set(`pois:${getFeatureId(feature, 'poi', index)}`, marker)
   })
+
+  applyLayerVisibility()
+}
+
+function applyLayerVisibility() {
+  if (!map) return
+  const layer = activeLayer.value
+
+  if (layer === 'all' || layer === 'study-rooms') {
+    if (studyClusterGroup && !map.hasLayer(studyClusterGroup)) map.addLayer(studyClusterGroup)
+  } else {
+    if (studyClusterGroup && map.hasLayer(studyClusterGroup)) map.removeLayer(studyClusterGroup)
+  }
+
+  if (layer === 'all' || layer === 'pois') {
+    if (poiClusterGroup && !map.hasLayer(poiClusterGroup)) map.addLayer(poiClusterGroup)
+  } else {
+    if (poiClusterGroup && map.hasLayer(poiClusterGroup)) map.removeLayer(poiClusterGroup)
+  }
+
+  if (layer === 'all' || layer === 'chargers') {
+    if (chargerLayer && !map.hasLayer(chargerLayer)) map.addLayer(chargerLayer)
+  } else {
+    if (chargerLayer && map.hasLayer(chargerLayer)) map.removeLayer(chargerLayer)
+  }
 }
 
 /* ── Charger marker interactions ─────────────────────── */
@@ -468,8 +513,9 @@ async function init2DMap() {
     zoomControl: true
   })
 
-  markerLayer = L.layerGroup().addTo(map)
-  chargerLayer = L.layerGroup().addTo(map)
+  studyClusterGroup = createClusterGroup()
+  poiClusterGroup = createClusterGroup()
+  chargerLayer = L.layerGroup()
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
@@ -487,6 +533,11 @@ async function init2DMap() {
 
 onMounted(async () => {
   await init2DMap()
+})
+
+// Apply layer visibility when activeLayer changes
+watch(activeLayer, () => {
+  applyLayerVisibility()
 })
 
 // Re-initialize 2D map when switching back from 3D
