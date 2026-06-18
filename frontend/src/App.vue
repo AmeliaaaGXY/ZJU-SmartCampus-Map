@@ -8,7 +8,7 @@ import {
   normalizeFeatureCollection,
   textOrUnknown
 } from './services/geojsonData'
-import { getStudyRoomIcon, getPoiIcon, getChargerIcon, POI_CATEGORY_COLORS, MARKER_COLORS } from './services/markerIcons'
+import { getStudyRoomIcon, getPoiIcon, getChargerIcon } from './services/markerIcons'
 import { buildStudyRoomPopup, buildPoiPopup, buildChargerPopup } from './services/popupBuilders'
 import {
   getChargerStations,
@@ -748,7 +748,7 @@ onBeforeUnmount(() => {
         <button
           class="legend-toggle"
           @click="legendExpanded = !legendExpanded"
-          aria-expanded="false"
+          :aria-expanded="legendExpanded"
         >
           图例 {{ legendExpanded ? '▲' : '▼' }}
         </button>

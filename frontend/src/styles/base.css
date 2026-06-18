@@ -667,6 +667,7 @@ h1 {
   height: 10px;
   flex: 0 0 auto;
   border-radius: 999px;
+  border: 1.5px solid;
 }
 
 /* ── Map area ────────────────────────────────────────── */

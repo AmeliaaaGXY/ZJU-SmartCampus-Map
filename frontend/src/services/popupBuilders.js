@@ -24,7 +24,7 @@ export function buildStudyRoomPopup(feature) {
   const building = esc(textOrUnknown(p.building))
   const floor = esc(textOrUnknown(p.floor))
   const room = esc(textOrUnknown(p.room))
-  const location = [floor, room].filter(Boolean).join(' · ') || '未知'
+  const location = [floor, room].filter(s => s !== '未知').join(' · ') || '未知'
   const openTime = esc(textOrUnknown(p.open_time))
   const closeTime = esc(textOrUnknown(p.close_time))
   const seatAvail = esc(textOrUnknown(p.seat_available))
