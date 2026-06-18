@@ -1,5 +1,5 @@
 import { textOrUnknown } from './geojsonData'
-import { MARKER_COLORS, POI_CATEGORY_COLORS } from './markerIcons'
+import { POPUP_COLORS } from './markerIcons'
 
 /* ── Helpers ────────────────────────────────────────── */
 
@@ -8,7 +8,7 @@ function esc(text) {
 }
 
 function headerColor(category) {
-  return POI_CATEGORY_COLORS[category] || MARKER_COLORS.other
+  return POPUP_COLORS[category] || POPUP_COLORS.other
 }
 
 function attrRow(label, value) {
@@ -35,7 +35,7 @@ export function buildStudyRoomPopup(feature) {
   const desc = esc(textOrUnknown(p.description))
 
   return `<div class="popup-card">
-    <div class="popup-card-header" style="background:${MARKER_COLORS.studyRoom};">
+    <div class="popup-card-header" style="background:${POPUP_COLORS.studyRoom};">
       <div class="popup-card-title">${name}</div>
       <div class="popup-card-subtitle">${type}</div>
     </div>
@@ -100,7 +100,7 @@ export function buildChargerPopup(station) {
   const updated = esc(textOrUnknown(station.updated_at))
 
   const hasAvailable = Number(station?.available_ports) > 0
-  const headerBg = hasAvailable ? MARKER_COLORS.chargerAvailable : MARKER_COLORS.chargerUnavailable
+  const headerBg = hasAvailable ? POPUP_COLORS.chargerAvailable : POPUP_COLORS.chargerUnavailable
 
   return `<div class="popup-card">
     <div class="popup-card-header" style="background:${headerBg};">

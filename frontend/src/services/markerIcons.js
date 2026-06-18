@@ -117,6 +117,21 @@ export function getChargerIcon(hasAvailable, isSelected) {
   return makeDivIcon(svg, `custom-marker-icon charger-icon ${isSelected ? 'charger-selected' : ''}`)
 }
 
+/* ── Popup header colors (desaturated, campus tones) ─── */
+
+export const POPUP_COLORS = {
+  studyRoom: '#4a7c8c',
+  library: '#5c4a6e',
+  teaching: '#8c6e4a',
+  canteen: '#b0624a',
+  scenic: '#5a7c5a',
+  service: '#4a627c',
+  museum: '#8c5a6e',
+  other: '#7a7a7a',
+  chargerAvailable: '#5a8c5a',
+  chargerUnavailable: '#9e504a'
+}
+
 /* ── Color map export (for legend / popup headers) ───── */
 
 export const POI_CATEGORY_COLORS = CATEGORY_COLORS
