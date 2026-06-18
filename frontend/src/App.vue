@@ -522,6 +522,24 @@ async function init2DMap() {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map)
 
+  // Load campus boundary overlay
+  try {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+    const boundaryRes = await fetch(`${apiBase}/api/zjg-boundary`)
+    if (boundaryRes.ok) {
+      const boundaryData = await boundaryRes.json()
+      L.geoJSON(boundaryData, {
+        style: {
+          fillColor: '#c2644f',
+          fillOpacity: 0.08,
+          color: '#c2644f',
+          weight: 2.5
+        },
+        interactive: false
+      }).addTo(map).bringToBack()
+    }
+  } catch { /* boundary unavailable — silently skip */ }
+
   await loadData()
   await loadChargers()
 
