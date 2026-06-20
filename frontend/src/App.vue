@@ -1,13 +1,19 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
+import 'leaflet.markercluster'
+import 'leaflet.markercluster/dist/MarkerCluster.css'
+import 'leaflet.markercluster/dist/MarkerCluster.Default.css'
 import CesiumView from './components/CesiumView.vue'
 import {
   getFeatureCoordinate,
   loadMapDatasets,
   normalizeFeatureCollection,
-  textOrUnknown
+  textOrUnknown,
+  bd09ToWgs84
 } from './services/geojsonData'
+import { getStudyRoomIcon, getPoiIcon, getChargerIcon } from './services/markerIcons'
+import { buildStudyRoomPopup, buildPoiPopup, buildChargerPopup } from './services/popupBuilders'
 import {
   getChargerStations,
   getChargerStatus,
@@ -42,6 +48,7 @@ const chargerApiConfigured = ref(false)
 const selectedChargerId = ref('')
 const legendExpanded = ref(false)
 const viewMode = ref('2d') // '2d' | '3d'
+const activeLayer = ref('all') // 'all' | 'study-rooms' | 'pois' | 'chargers'
 
 function switchTo2D() {
   viewMode.value = '2d'
@@ -52,7 +59,8 @@ function switchTo3D() {
   if (map) {
     map.remove()
     map = null
-    markerLayer = null
+    studyClusterGroup = null
+    poiClusterGroup = null
     chargerLayer = null
     markerRefs.clear()
     wmsLayer = null
@@ -146,14 +154,12 @@ watch([geoServerEnabled, geoServerPois], () => {
 /* ── Map state ───────────────────────────────────────── */
 
 let map = null
-let markerLayer = null
+let studyClusterGroup = null
+let poiClusterGroup = null
 let chargerLayer = null
 const markerRefs = new Map()
 
 const campusCenter = [30.3046, 120.0869]
-const EARTH_RADIUS = 6378245.0
-const EE = 0.006693421622965943
-const X_PI = (Math.PI * 3000.0) / 180.0
 
 /* ── Computed ────────────────────────────────────────── */
 
@@ -246,91 +252,6 @@ function getItemCssClass() {
 
 /* ── Coordinate transforms ───────────────────────────── */
 
-function transformLat(longitudeOffset, latitudeOffset) {
-  let result =
-    -100.0 +
-    2.0 * longitudeOffset +
-    3.0 * latitudeOffset +
-    0.2 * latitudeOffset * latitudeOffset +
-    0.1 * longitudeOffset * latitudeOffset +
-    0.2 * Math.sqrt(Math.abs(longitudeOffset))
-  result +=
-    ((20.0 * Math.sin(6.0 * longitudeOffset * Math.PI) +
-      20.0 * Math.sin(2.0 * longitudeOffset * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((20.0 * Math.sin(latitudeOffset * Math.PI) +
-      40.0 * Math.sin((latitudeOffset / 3.0) * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((160.0 * Math.sin((latitudeOffset / 12.0) * Math.PI) +
-      320 * Math.sin((latitudeOffset * Math.PI) / 30.0)) *
-      2.0) /
-    3.0
-  return result
-}
-
-function transformLon(longitudeOffset, latitudeOffset) {
-  let result =
-    300.0 +
-    longitudeOffset +
-    2.0 * latitudeOffset +
-    0.1 * longitudeOffset * longitudeOffset +
-    0.1 * longitudeOffset * latitudeOffset +
-    0.1 * Math.sqrt(Math.abs(longitudeOffset))
-  result +=
-    ((20.0 * Math.sin(6.0 * longitudeOffset * Math.PI) +
-      20.0 * Math.sin(2.0 * longitudeOffset * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((20.0 * Math.sin(longitudeOffset * Math.PI) +
-      40.0 * Math.sin((longitudeOffset / 3.0) * Math.PI)) *
-      2.0) /
-    3.0
-  result +=
-    ((150.0 * Math.sin((longitudeOffset / 12.0) * Math.PI) +
-      300.0 * Math.sin((longitudeOffset / 30.0) * Math.PI)) *
-      2.0) /
-    3.0
-  return result
-}
-
-function gcj02ToWgs84(latitude, longitude) {
-  const dLat = transformLat(longitude - 105.0, latitude - 35.0)
-  const dLon = transformLon(longitude - 105.0, latitude - 35.0)
-  const radLat = (latitude / 180.0) * Math.PI
-  let magic = Math.sin(radLat)
-  magic = 1 - EE * magic * magic
-  const sqrtMagic = Math.sqrt(magic)
-  const adjustedLat =
-    (dLat * 180.0) / (((EARTH_RADIUS * (1 - EE)) / (magic * sqrtMagic)) * Math.PI)
-  const adjustedLon =
-    (dLon * 180.0) / ((EARTH_RADIUS / sqrtMagic) * Math.cos(radLat) * Math.PI)
-  return {
-    latitude: latitude * 2 - (latitude + adjustedLat),
-    longitude: longitude * 2 - (longitude + adjustedLon)
-  }
-}
-
-function bd09ToGcj02(latitude, longitude) {
-  const x = longitude - 0.0065
-  const y = latitude - 0.006
-  const z = Math.sqrt(x * x + y * y) - 0.00002 * Math.sin(y * X_PI)
-  const theta = Math.atan2(y, x) - 0.000003 * Math.cos(x * X_PI)
-  return {
-    latitude: z * Math.sin(theta),
-    longitude: z * Math.cos(theta)
-  }
-}
-
-function bd09ToWgs84(coordinate) {
-  const gcjCoordinate = bd09ToGcj02(coordinate.latitude, coordinate.longitude)
-  return gcj02ToWgs84(gcjCoordinate.latitude, gcjCoordinate.longitude)
-}
-
 function getChargerCoordinate(station) {
   const latitude = Number(station?.latitude)
   const longitude = Number(station?.longitude)
@@ -338,90 +259,76 @@ function getChargerCoordinate(station) {
   return bd09ToWgs84({ latitude, longitude })
 }
 
-/* ── Popup builders ──────────────────────────────────── */
-
-function buildChargerPopup(station) {
-  return `
-    <strong>${textOrUnknown(station.name)}</strong>
-    <div>服务商：${textOrUnknown(station.provider)}</div>
-    <div>校区：${textOrUnknown(station.campus_name || station.campus)}</div>
-    <div>空闲 / 已用 / 总数：${textOrUnknown(station.available_ports)} / ${textOrUnknown(station.used_ports)} / ${textOrUnknown(station.total_ports)}</div>
-    <div>故障数：${textOrUnknown(station.error_ports)}</div>
-    <div>更新时间：${textOrUnknown(station.updated_at)}</div>
-  `
-}
-
-function buildStudyRoomPopup(feature) {
-  const properties = feature.properties || {}
-  return `
-    <strong>${textOrUnknown(properties.name)}</strong>
-    <div>建筑：${textOrUnknown(properties.building)}</div>
-    <div>楼层 / 房间：${textOrUnknown(properties.floor)} ${textOrUnknown(properties.room)}</div>
-    <div>开放时间：${textOrUnknown(properties.open_time)} - ${textOrUnknown(properties.close_time)}</div>
-    <div>可用座位：${textOrUnknown(properties.seat_available)} / ${textOrUnknown(properties.seat_total)}</div>
-    <div>是否有插座：${textOrUnknown(properties.has_power)}</div>
-    <div>说明：${textOrUnknown(properties.description)}</div>
-  `
-}
-
-function buildPoiPopup(feature) {
-  const properties = feature.properties || {}
-  return `
-    <strong>${textOrUnknown(properties.name)}</strong>
-    <div>类别：${textOrUnknown(properties.category)}</div>
-    <div>适用人群：${textOrUnknown(properties.audience)}</div>
-    <div>开放时间：${textOrUnknown(properties.open_time)}</div>
-    <div>说明：${textOrUnknown(properties.description)}</div>
-  `
-}
-
 /* ── Marker rendering ────────────────────────────────── */
 
-function getChargerMarkerStyle(station, isSelected = false) {
-  const hasAvailablePorts = Number(station?.available_ports) > 0
-  return {
-    radius: isSelected ? 12 : 8,
-    color: isSelected ? '#0f172a' : hasAvailablePorts ? '#047857' : '#b91c1c',
-    weight: isSelected ? 4 : 2,
-    fillColor: hasAvailablePorts ? '#22c55e' : '#ef4444',
-    fillOpacity: isSelected ? 0.95 : 0.86
-  }
-}
-
-function addPointMarkers(features, options) {
-  features.forEach((feature, index) => {
-    const coordinate = getFeatureCoordinate(feature)
-    if (!coordinate) return
-    const marker = L.circleMarker([coordinate.latitude, coordinate.longitude], {
-      radius: 8,
-      color: options.color,
-      weight: 2,
-      fillColor: options.fillColor,
-      fillOpacity: 0.85
-    })
-      .addTo(markerLayer)
-      .bindPopup(options.popupBuilder(feature))
-    markerRefs.set(options.markerKey(feature, index), marker)
+function createClusterGroup() {
+  return L.markerClusterGroup({
+    maxClusterRadius: 50,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    iconCreateFunction: function (cluster) {
+      const count = cluster.getChildCount()
+      return L.divIcon({
+        html: `<div class="cluster-icon"><span>${count}</span></div>`,
+        className: 'custom-cluster-icon',
+        iconSize: L.point(40, 40)
+      })
+    }
   })
 }
 
 function renderMarkers() {
-  markerLayer.clearLayers()
-  markerRefs.clear()
-
-  addPointMarkers(studyRooms.value, {
-    color: '#1d4ed8',
-    fillColor: '#3b82f6',
-    popupBuilder: buildStudyRoomPopup,
-    markerKey: (feature, index) => `study-rooms:${getFeatureId(feature, 'study_room', index)}`
+  // Rebuild study room cluster
+  if (studyClusterGroup) { map.removeLayer(studyClusterGroup) }
+  studyClusterGroup = createClusterGroup()
+  studyRooms.value.forEach((feature, index) => {
+    const coordinate = getFeatureCoordinate(feature)
+    if (!coordinate) return
+    const marker = L.marker([coordinate.latitude, coordinate.longitude], {
+      icon: getStudyRoomIcon()
+    }).bindPopup(buildStudyRoomPopup(feature))
+    studyClusterGroup.addLayer(marker)
+    markerRefs.set(`study-rooms:${getFeatureId(feature, 'study_room', index)}`, marker)
   })
 
-  addPointMarkers(displayPois.value, {
-    color: '#047857',
-    fillColor: '#10b981',
-    popupBuilder: buildPoiPopup,
-    markerKey: (feature, index) => `pois:${getFeatureId(feature, 'poi', index)}`
+  // Rebuild POI cluster
+  if (poiClusterGroup) { map.removeLayer(poiClusterGroup) }
+  poiClusterGroup = createClusterGroup()
+  displayPois.value.forEach((feature, index) => {
+    const coordinate = getFeatureCoordinate(feature)
+    if (!coordinate) return
+    const marker = L.marker([coordinate.latitude, coordinate.longitude], {
+      icon: getPoiIcon((feature.properties || {}).category)
+    }).bindPopup(buildPoiPopup(feature))
+    poiClusterGroup.addLayer(marker)
+    markerRefs.set(`pois:${getFeatureId(feature, 'poi', index)}`, marker)
   })
+
+  applyLayerVisibility()
+}
+
+function applyLayerVisibility() {
+  if (!map) return
+  const layer = activeLayer.value
+
+  if (layer === 'all' || layer === 'study-rooms') {
+    if (studyClusterGroup && !map.hasLayer(studyClusterGroup)) map.addLayer(studyClusterGroup)
+  } else {
+    if (studyClusterGroup && map.hasLayer(studyClusterGroup)) map.removeLayer(studyClusterGroup)
+  }
+
+  if (layer === 'all' || layer === 'pois') {
+    if (poiClusterGroup && !map.hasLayer(poiClusterGroup)) map.addLayer(poiClusterGroup)
+  } else {
+    if (poiClusterGroup && map.hasLayer(poiClusterGroup)) map.removeLayer(poiClusterGroup)
+  }
+
+  if (layer === 'all' || layer === 'chargers') {
+    if (chargerLayer && !map.hasLayer(chargerLayer)) map.addLayer(chargerLayer)
+  } else {
+    if (chargerLayer && map.hasLayer(chargerLayer)) map.removeLayer(chargerLayer)
+  }
 }
 
 /* ── Charger marker interactions ─────────────────────── */
@@ -433,8 +340,8 @@ function resetSelectedChargerMarker() {
     (station) => getChargerId(station) === selectedChargerId.value
   )
   if (previousMarker && previousStation) {
-    previousMarker.setStyle(getChargerMarkerStyle(previousStation))
-    previousMarker.setRadius(8)
+    const hasAvail = Number(previousStation?.available_ports) > 0
+    previousMarker.setIcon(getChargerIcon(hasAvail, false))
     previousMarker.unbindTooltip()
   }
 }
@@ -444,8 +351,8 @@ function setSelectedCharger(station) {
   selectedChargerId.value = getChargerId(station)
   const marker = markerRefs.get(`chargers:${selectedChargerId.value}`)
   if (!marker) return
-  marker.setStyle(getChargerMarkerStyle(station, true))
-  marker.setRadius(12)
+  const hasAvail = Number(station?.available_ports) > 0
+  marker.setIcon(getChargerIcon(hasAvail, true))
   marker
     .bindTooltip(textOrUnknown(station.name), {
       permanent: true,
@@ -462,9 +369,10 @@ function renderChargerMarkers() {
   chargerStations.value.forEach((station, index) => {
     const coordinate = getChargerCoordinate(station)
     if (!coordinate) return
-    const marker = L.circleMarker(
+    const hasAvailable = Number(station?.available_ports) > 0
+    const marker = L.marker(
       [coordinate.latitude, coordinate.longitude],
-      getChargerMarkerStyle(station)
+      { icon: getChargerIcon(hasAvailable, false) }
     )
       .addTo(chargerLayer)
       .bindPopup(buildChargerPopup(station))
@@ -475,9 +383,38 @@ function renderChargerMarkers() {
 
 /* ── Focus / navigation ──────────────────────────────── */
 
+const cesiumViewRef = ref(null)
+
+function ensureLayerVisible(layer) {
+  if (activeLayer.value !== 'all' && activeLayer.value !== layer) {
+    activeLayer.value = layer
+  }
+}
+
+function zoomToShowAndOpenPopup(marker, clusterGroup, latlng) {
+  // If the marker is clustered, zoom to show it individually first
+  if (clusterGroup) {
+    clusterGroup.zoomToShowLayer(marker, function () {
+      marker.openPopup()
+    })
+  } else {
+    marker.openPopup()
+  }
+}
+
 function focusChargerStation(station) {
+  if (viewMode.value === '3d') {
+    const stationId = getChargerId(station)
+    ensureLayerVisible('chargers')
+    if (cesiumViewRef.value) {
+      cesiumViewRef.value.focus3DEntity(`chargers:${stationId}`)
+    }
+    return
+  }
+
   const coordinate = getChargerCoordinate(station)
   if (!coordinate || !map) return
+  ensureLayerVisible('chargers')
   setSelectedCharger(station)
   map.flyTo([coordinate.latitude, coordinate.longitude], 17, { duration: 0.6 })
   const marker = markerRefs.get(`chargers:${getChargerId(station)}`)
@@ -490,14 +427,32 @@ function focusFeature(item, index) {
     return
   }
 
+  // 3D mode: delegate to CesiumView
+  if (viewMode.value === '3d') {
+    const featureId = getFeatureId(item, activePanel.value, index)
+    const layer = activePanel.value === 'study-rooms' ? 'study-rooms' : 'pois'
+    ensureLayerVisible(layer)
+    if (cesiumViewRef.value) {
+      cesiumViewRef.value.focus3DEntity(`${layer}:${featureId}`)
+    }
+    return
+  }
+
+  // 2D mode
   const coordinate = getFeatureCoordinate(item)
   if (!coordinate || !map) return
 
-  const markerKey = `${activePanel.value}:${getFeatureId(item, activePanel.value, index)}`
+  const layer = activePanel.value === 'study-rooms' ? 'study-rooms' : 'pois'
+  ensureLayerVisible(layer)
+
+  const markerKey = `${layer}:${getFeatureId(item, layer, index)}`
   const marker = markerRefs.get(markerKey)
+  const clusterGroup = layer === 'study-rooms' ? studyClusterGroup : poiClusterGroup
 
   map.flyTo([coordinate.latitude, coordinate.longitude], 17, { duration: 0.6 })
-  if (marker) marker.openPopup()
+  if (marker) {
+    zoomToShowAndOpenPopup(marker, clusterGroup, [coordinate.latitude, coordinate.longitude])
+  }
 }
 
 function findStudyRoomByRecommendation(recommendation) {
@@ -605,13 +560,32 @@ async function init2DMap() {
     zoomControl: true
   })
 
-  markerLayer = L.layerGroup().addTo(map)
-  chargerLayer = L.layerGroup().addTo(map)
+  studyClusterGroup = createClusterGroup()
+  poiClusterGroup = createClusterGroup()
+  chargerLayer = L.layerGroup()
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map)
+
+  // Load campus boundary overlay
+  try {
+    const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
+    const boundaryRes = await fetch(`${apiBase}/api/zjg-boundary`)
+    if (boundaryRes.ok) {
+      const boundaryData = await boundaryRes.json()
+      L.geoJSON(boundaryData, {
+        style: {
+          fillColor: '#c2644f',
+          fillOpacity: 0.08,
+          color: '#c2644f',
+          weight: 2.5
+        },
+        interactive: false
+      }).addTo(map).bringToBack()
+    }
+  } catch { /* boundary unavailable — silently skip */ }
 
   await loadData()
   await loadChargers()
@@ -624,6 +598,11 @@ async function init2DMap() {
 
 onMounted(async () => {
   await init2DMap()
+})
+
+// Apply layer visibility when activeLayer changes
+watch(activeLayer, () => {
+  applyLayerVisibility()
 })
 
 // Re-initialize 2D map when switching back from 3D
@@ -799,25 +778,49 @@ onBeforeUnmount(() => {
         <button
           class="legend-toggle"
           @click="legendExpanded = !legendExpanded"
-          aria-expanded="false"
+          :aria-expanded="legendExpanded"
         >
           图例 {{ legendExpanded ? '▲' : '▼' }}
         </button>
         <div v-show="legendExpanded" class="legend-grid">
           <div class="legend-row">
-            <span class="legend-dot study-room-dot"></span>
+            <span class="legend-dot" style="background:#3b82f6;border-color:#3b82f6;"></span>
             <span>自习室</span>
           </div>
           <div class="legend-row">
-            <span class="legend-dot poi-dot"></span>
-            <span>校园 POI</span>
+            <span class="legend-dot" style="background:#8b5cf6;border-color:#8b5cf6;"></span>
+            <span>图书馆</span>
           </div>
           <div class="legend-row">
-            <span class="legend-dot charger-available-dot"></span>
+            <span class="legend-dot" style="background:#f59e0b;border-color:#f59e0b;"></span>
+            <span>教学楼</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span>
+            <span>食堂</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#10b981;border-color:#10b981;"></span>
+            <span>景观</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#6366f1;border-color:#6366f1;"></span>
+            <span>服务设施</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#ec4899;border-color:#ec4899;"></span>
+            <span>博物馆</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#6b7280;border-color:#6b7280;"></span>
+            <span>其他</span>
+          </div>
+          <div class="legend-row">
+            <span class="legend-dot" style="background:#22c55e;border-color:#22c55e;"></span>
             <span>有空闲充电桩</span>
           </div>
           <div class="legend-row">
-            <span class="legend-dot charger-full-dot"></span>
+            <span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span>
             <span>无空闲充电桩</span>
           </div>
         </div>
@@ -869,20 +872,32 @@ onBeforeUnmount(() => {
               🌍 3D
             </button>
           </div>
+          <div class="layer-toggle">
+            <button class="layer-btn" :class="{ active: activeLayer === 'all' }" type="button" @click="activeLayer = 'all'">全部</button>
+            <button class="layer-btn" :class="{ active: activeLayer === 'study-rooms' }" type="button" @click="activeLayer = 'study-rooms'">自习室</button>
+            <button class="layer-btn" :class="{ active: activeLayer === 'pois' }" type="button" @click="activeLayer = 'pois'">POI</button>
+            <button class="layer-btn" :class="{ active: activeLayer === 'chargers' }" type="button" @click="activeLayer = 'chargers'">充电桩</button>
+          </div>
         </div>
         <div ref="mapContainer" class="leaflet-map"></div>
 
         <!-- Map legend overlay (always visible) -->
         <div class="map-legend-overlay">
-          <span><span class="legend-dot study-room-dot"></span> 自习室</span>
-          <span><span class="legend-dot poi-dot"></span> POI</span>
-          <span><span class="legend-dot charger-available-dot"></span> 有空闲</span>
-          <span><span class="legend-dot charger-full-dot"></span> 无空闲</span>
+          <span><span class="legend-dot" style="background:#3b82f6;border-color:#3b82f6;"></span> 自习室</span>
+          <span><span class="legend-dot" style="background:#8b5cf6;border-color:#8b5cf6;"></span> 图书馆</span>
+          <span><span class="legend-dot" style="background:#f59e0b;border-color:#f59e0b;"></span> 教学</span>
+          <span><span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span> 食堂</span>
+          <span><span class="legend-dot" style="background:#10b981;border-color:#10b981;"></span> 景观</span>
+          <span><span class="legend-dot" style="background:#6366f1;border-color:#6366f1;"></span> 服务</span>
+          <span><span class="legend-dot" style="background:#ec4899;border-color:#ec4899;"></span> 博物馆</span>
+          <span><span class="legend-dot" style="background:#6b7280;border-color:#6b7280;"></span> 其他</span>
+          <span><span class="legend-dot" style="background:#22c55e;border-color:#22c55e;"></span> 空闲桩</span>
+          <span><span class="legend-dot" style="background:#ef4444;border-color:#ef4444;"></span> 无空闲桩</span>
         </div>
       </template>
 
       <!-- 3D Cesium View -->
-      <CesiumView v-else @back="switchTo2D" />
+      <CesiumView v-else ref="cesiumViewRef" @back="switchTo2D" :active-layer="activeLayer" @update:active-layer="activeLayer = $event" />
     </section>
   </main>
 </template>

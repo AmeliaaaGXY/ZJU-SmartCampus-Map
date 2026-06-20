@@ -1,10 +1,16 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import * as Cesium from 'cesium'
-import { getStudyRooms, getPois, getBuildings } from '../services/api'
-import { normalizeFeatureCollection, textOrUnknown, getFeatureCoordinate } from '../services/geojsonData'
+import { getStudyRooms, getPois, getBuildings, getChargerStations } from '../services/api'
+import { normalizeFeatureCollection, textOrUnknown, getFeatureCoordinate, bd09ToWgs84 } from '../services/geojsonData'
+import { buildStudyRoomPopup, buildPoiPopup, buildChargerPopup } from '../services/popupBuilders'
+import { buildPinSvg, svgToDataUrl, POI_CATEGORY_COLORS, MARKER_COLORS, ICONS } from '../services/markerIcons'
 
-const emit = defineEmits(['back'])
+const props = defineProps({
+  activeLayer: { type: String, default: 'all' }
+})
+
+const emit = defineEmits(['back', 'update:activeLayer'])
 
 const containerRef = ref(null)
 const isLoading = ref(true)
@@ -15,13 +21,48 @@ const activeBasemap = ref('osm')
 let viewer = null
 let curImageryLayer = null
 const dataSources = []
+const studyRoomEntities = []
+const poiEntities = []
+const chargerEntities = []
+
+// Entity lookup for sidebar click → fly-to
+const entityLookup = new Map() // key: 'study-rooms:<id>' | 'pois:<id>' | 'chargers:<id>'
 
 /* ── Campus center (WGS84) ────────────────────────────── */
 
 const CAMPUS_CENTER = { lng: 120.0869, lat: 30.3046 }
 const CAMERA_HEIGHT = 2500
 
-/* ── Basemap: 参考课程 Ex13 进阶版 gnnwr_app.html ────── */
+/* ── Popup card CSS injected into Cesium iframe ────────── */
+
+function cesiumPopupWrap(html) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: Inter, "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  font-size: 13px; color: #3b3a39; background: transparent;
+  -webkit-font-smoothing: antialiased;
+}
+.popup-card { max-width: 240px; border-radius: 8px; overflow: hidden; box-shadow: 0 3px 16px rgba(0,0,0,0.1); line-height: 1.5; }
+.popup-card-header { padding: 10px 14px; color: #ffffff; }
+.popup-card-title { font-size: 14px; font-weight: 700; line-height: 1.3; }
+.popup-card-subtitle { margin-top: 2px; font-size: 10px; opacity: 0.85; }
+.popup-card-body { padding: 12px 14px; background: #ffffff; }
+.attr-grid { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; font-size: 11px; }
+.attr-label { color: #999691; white-space: nowrap; }
+.attr-value { color: #3b3a39; font-weight: 500; }
+.popup-card-desc { padding: 8px 14px 10px; border-top: 1px solid #eae6df; background: #ffffff; color: #999691; font-size: 10px; line-height: 1.55; }
+</style>
+</head>
+<body>${html}</body>
+</html>`
+}
+
+/* ── Basemap ──────────────────────────────────────────── */
 
 const providerCache = {}
 const basemapStatus = ref('')
@@ -41,13 +82,11 @@ function makeProvider(id) {
   }
   if (id === 'esri') {
     const url = 'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer'
-    // 新版 Cesium: fromUrl 返回 Promise；旧版可直接 new
     if (typeof Cesium.ArcGisMapServerImageryProvider.fromUrl === 'function') {
       return Cesium.ArcGisMapServerImageryProvider.fromUrl(url)
     }
     return new Cesium.ArcGisMapServerImageryProvider({ url })
   }
-  // 兜底
   return makeProvider('local')
 }
 
@@ -68,13 +107,10 @@ function addErrorFallback(provider, id) {
 
 async function switchLayer(id) {
   if (!viewer) return
-
   try {
-    // 复用已缓存的 provider，或新建
     const provider = await Promise.resolve(providerCache[id] || makeProvider(id))
     providerCache[id] = provider
     addErrorFallback(provider, id)
-
     if (curImageryLayer) {
       viewer.imageryLayers.remove(curImageryLayer, true)
     }
@@ -82,7 +118,6 @@ async function switchLayer(id) {
     activeBasemap.value = id
     basemapStatus.value = ''
   } catch {
-    // 任何异常都回退到本地
     if (id !== 'local') {
       basemapStatus.value = '⚠️ 底图切换失败，回退到本地离线底图'
       switchLayer('local')
@@ -90,7 +125,6 @@ async function switchLayer(id) {
   }
 }
 
-/* 便捷包装，供模板按钮绑定 */
 function switchBasemap(id) {
   switchLayer(id)
 }
@@ -98,7 +132,7 @@ function switchBasemap(id) {
 /* ── Data loading ────────────────────────────────────── */
 
 async function loadGeoJsonData() {
-  const results = { studyRooms: [], pois: [], buildings: [], campusBoundary: [] }
+  const results = { studyRooms: [], pois: [], chargers: [], buildings: [], campusBoundary: [] }
 
   try {
     const srResponse = await getStudyRooms()
@@ -115,7 +149,13 @@ async function loadGeoJsonData() {
     results.buildings = normalizeFeatureCollection(buildingResponse.data).features
   } catch { /* fall through */ }
 
-  // Load campus boundary from backend API
+  try {
+    const chargerRes = await getChargerStations()
+    if (chargerRes.data?.ok && Array.isArray(chargerRes.data.stations)) {
+      results.chargers = chargerRes.data.stations
+    }
+  } catch { /* fall through */ }
+
   try {
     const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
     const zjgRes = await fetch(`${apiBase}/api/zjg-boundary`)
@@ -128,73 +168,27 @@ async function loadGeoJsonData() {
   return results
 }
 
-/* ── Canvas pin builder ──────────────────────────────── */
-
-function createPinCanvas(hexColor, label) {
-  const size = 32
-  const canvas = document.createElement('canvas')
-  canvas.width = size
-  canvas.height = size
-  const ctx = canvas.getContext('2d')
-
-  ctx.beginPath()
-  ctx.arc(size / 2, size / 2 - 2, size / 2 - 3, 0, 2 * Math.PI)
-  ctx.fillStyle = hexColor
-  ctx.fill()
-  ctx.strokeStyle = '#ffffff'
-  ctx.lineWidth = 2
-  ctx.stroke()
-
-  if (label) {
-    ctx.fillStyle = '#ffffff'
-    ctx.font = 'bold 12px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(label, size / 2, size / 2 - 1)
-  }
-
-  return canvas.toDataURL()
-}
-
-/* ── Description builders ────────────────────────────── */
-
-function buildDescription(feature, type) {
-  const props = feature.properties || {}
-  const rows = [
-    '<div style="font-family:sans-serif;font-size:13px;line-height:1.6;color:#3b3a39;">',
-    `<strong style="font-size:14px;display:block;margin-bottom:4px;">${textOrUnknown(props.name)}</strong>`
-  ]
-
-  if (type === 'study-room') {
-    rows.push(`<div>🏢 ${textOrUnknown(props.building)}</div>`)
-    rows.push(`<div>📍 ${textOrUnknown(props.floor)} ${textOrUnknown(props.room)}</div>`)
-    rows.push(`<div>🕐 ${textOrUnknown(props.open_time)} - ${textOrUnknown(props.close_time)}</div>`)
-    rows.push(`<div>💺 ${textOrUnknown(props.seat_available)}/${textOrUnknown(props.seat_total)}</div>`)
-  } else {
-    rows.push(`<div>📂 ${textOrUnknown(props.category)}</div>`)
-    rows.push(`<div>🕐 ${textOrUnknown(props.open_time)}</div>`)
-  }
-  rows.push(`<div style="margin-top:4px;color:#666;">${textOrUnknown(props.description)}</div>`)
-  rows.push('</div>')
-  return rows.join('')
-}
-
 /* ── Entity rendering ────────────────────────────────── */
 
 function addPointEntities(features, options) {
   if (!features.length) return
 
-  features.forEach((feature) => {
+  features.forEach((feature, index) => {
     const coord = getFeatureCoordinate(feature)
     if (!coord) return
 
     const props = feature.properties || {}
     const name = props.name || '未知地点'
+    const category = props.category || 'other'
+    const color = typeof options.color === 'function' ? options.color(feature) : options.color
+    const iconPath = typeof options.iconPath === 'function' ? options.iconPath(feature) : options.iconPath
+    const svg = buildPinSvg(color, iconPath)
+    const imageUrl = svgToDataUrl(svg)
 
-    viewer.entities.add({
+    const entity = viewer.entities.add({
       position: Cesium.Cartesian3.fromDegrees(coord.longitude, coord.latitude),
       billboard: {
-        image: createPinCanvas(options.color, options.label),
+        image: imageUrl,
         verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         scale: 0.75,
@@ -212,8 +206,14 @@ function addPointEntities(features, options) {
         heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
         distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1000)
       },
-      description: buildDescription(feature, options.type)
+      description: cesiumPopupWrap(options.popupBuilder(feature))
     })
+
+    options.entityArray.push(entity)
+    if (options.lookupKey) {
+      const key = options.lookupKey(feature, index)
+      entityLookup.set(key, entity)
+    }
   })
 }
 
@@ -274,7 +274,7 @@ function addCampusBoundary(features) {
   })
 }
 
-/* ── Cesium init (no Ion token needed) ───────────────── */
+/* ── Cesium init ──────────────────────────────────────── */
 
 function initCesium() {
   viewer = new Cesium.Viewer(containerRef.value, {
@@ -292,6 +292,7 @@ function initCesium() {
   })
 
   viewer.imageryLayers.removeAll()
+  viewer.infoBox.container.classList.add('cesium-infobox-custom')
   viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#1a1a2e')
   viewer.cesiumWidget.creditContainer.style.display = 'none'
   viewer.scene.globe.depthTestAgainstTerrain = true
@@ -312,15 +313,87 @@ function initCesium() {
   })
 }
 
+/* ── Charger entities ────────────────────────────────── */
+
+function addChargerEntities(stations) {
+  if (!stations.length) return
+  stations.forEach((station, index) => {
+    const lat = Number(station?.latitude)
+    const lng = Number(station?.longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return
+
+    const wgsCoord = bd09ToWgs84({ latitude: lat, longitude: lng })
+    const hasAvailable = Number(station?.available_ports) > 0
+    const color = hasAvailable ? MARKER_COLORS.chargerAvailable : MARKER_COLORS.chargerUnavailable
+    const svg = buildPinSvg(color, ICONS.charger)
+    const imageUrl = svgToDataUrl(svg)
+    const stationId = station.id || `charger_${index}`
+
+    const entity = viewer.entities.add({
+      position: Cesium.Cartesian3.fromDegrees(wgsCoord.longitude, wgsCoord.latitude),
+      billboard: {
+        image: imageUrl,
+        verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        scale: 0.75,
+        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 12000)
+      },
+      label: {
+        text: station.name || '未知站点',
+        font: '12px "Microsoft YaHei", sans-serif',
+        fillColor: Cesium.Color.fromCssColorString('#1a1a2e'),
+        outlineColor: Cesium.Color.WHITE,
+        outlineWidth: 2.5,
+        style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+        verticalOrigin: Cesium.VerticalOrigin.TOP,
+        pixelOffset: new Cesium.Cartesian2(0, 18),
+        heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+        distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 1000)
+      },
+      description: cesiumPopupWrap(buildChargerPopup(station))
+    })
+
+    chargerEntities.push(entity)
+    entityLookup.set(`chargers:${stationId}`, entity)
+  })
+}
+
+/* ── Focus / fly-to function (called from parent) ────── */
+
+function focus3DEntity(lookupKey) {
+  if (!viewer) return
+
+  const entity = entityLookup.get(lookupKey)
+  if (!entity) return
+
+  // Ensure entity is visible
+  entity.show = true
+
+  // Fly to entity
+  const position = entity.position
+  if (position) {
+    viewer.flyTo(entity, {
+      offset: new Cesium.HeadingPitchRange(
+        Cesium.Math.toRadians(0),
+        Cesium.Math.toRadians(-45),
+        200
+      )
+    })
+  }
+
+  // Select entity to show InfoBox popup
+  viewer.selectedEntity = entity
+}
+
 /* ── Render all data ─────────────────────────────────── */
 
 async function renderData() {
   isLoading.value = true
   loadMessage.value = '正在加载三维数据...'
 
-  const { studyRooms, pois, buildings, campusBoundary } = await loadGeoJsonData()
+  const { studyRooms, pois, chargers, buildings, campusBoundary } = await loadGeoJsonData()
 
-  const total = studyRooms.length + pois.length + buildings.length + campusBoundary.length
+  const total = studyRooms.length + pois.length + chargers.length + buildings.length + campusBoundary.length
   if (total === 0) {
     dataEmpty.value = true
     loadMessage.value = '暂无可用于三维展示的数据。'
@@ -330,12 +403,42 @@ async function renderData() {
 
   addCampusBoundary(campusBoundary)
   addBuildingEntities(buildings)
-  addPointEntities(studyRooms, { type: 'study-room', color: '#3b82f6', label: '📖' })
-  addPointEntities(pois, { type: 'poi', color: '#10b981', label: '📍' })
+  addPointEntities(studyRooms, {
+    color: MARKER_COLORS.studyRoom,
+    iconPath: ICONS.studyRoom,
+    popupBuilder: buildStudyRoomPopup,
+    entityArray: studyRoomEntities,
+    lookupKey: (feature, index) => `study-rooms:${feature?.properties?.id || `study_room_${index}`}`
+  })
+  addPointEntities(pois, {
+    color: (feature) => POI_CATEGORY_COLORS[(feature.properties || {}).category] || MARKER_COLORS.other,
+    iconPath: (feature) => ICONS[(feature.properties || {}).category] || ICONS.other,
+    popupBuilder: buildPoiPopup,
+    entityArray: poiEntities,
+    lookupKey: (feature, index) => `pois:${feature?.properties?.id || `poi_${index}`}`
+  })
+  addChargerEntities(chargers)
 
-  loadMessage.value = `已加载 ${studyRooms.length} 自习室 · ${pois.length} POI · ${buildings.length} 建筑 · ${campusBoundary.length} 校区边界`
+  loadMessage.value = `已加载 ${studyRooms.length} 自习室 · ${pois.length} POI · ${chargers.length} 充电桩 · ${buildings.length} 建筑 · ${campusBoundary.length} 校区边界`
   isLoading.value = false
 }
+
+/* ── Layer visibility ────────────────────────────────── */
+
+function applyLayerVisibility() {
+  const layer = props.activeLayer
+  const showStudy = layer === 'all' || layer === 'study-rooms'
+  const showPoi = layer === 'all' || layer === 'pois'
+  const showCharger = layer === 'all' || layer === 'chargers'
+
+  studyRoomEntities.forEach(e => { e.show = showStudy })
+  poiEntities.forEach(e => { e.show = showPoi })
+  chargerEntities.forEach(e => { e.show = showCharger })
+}
+
+watch(() => props.activeLayer, () => {
+  applyLayerVisibility()
+})
 
 /* ── Lifecycle ───────────────────────────────────────── */
 
@@ -358,11 +461,12 @@ onBeforeUnmount(() => {
     viewer = null
   }
 })
+
+defineExpose({ focus3DEntity })
 </script>
 
 <template>
   <div class="cesium-container">
-    <!-- Top bar -->
     <div class="cesium-top-bar">
       <button class="cesium-back-btn" type="button" @click="emit('back')">
         ← 返回二维地图
@@ -374,12 +478,17 @@ onBeforeUnmount(() => {
         <button class="basemap-btn" :class="{ active: activeBasemap === 'esri' }" type="button" @click="switchBasemap('esri')">卫星影像</button>
         <button class="basemap-btn" :class="{ active: activeBasemap === 'local' }" type="button" @click="switchBasemap('local')">本地离线</button>
       </div>
+
+      <div class="layer-toggle cesium-layer-toggle">
+        <button class="layer-btn" :class="{ active: activeLayer === 'all' }" type="button" @click="emit('update:activeLayer', 'all')">全部</button>
+        <button class="layer-btn" :class="{ active: activeLayer === 'study-rooms' }" type="button" @click="emit('update:activeLayer', 'study-rooms')">自习室</button>
+        <button class="layer-btn" :class="{ active: activeLayer === 'pois' }" type="button" @click="emit('update:activeLayer', 'pois')">POI</button>
+        <button class="layer-btn" :class="{ active: activeLayer === 'chargers' }" type="button" @click="emit('update:activeLayer', 'chargers')">充电桩</button>
+      </div>
     </div>
 
-    <!-- Basemap status warning -->
     <div v-if="basemapStatus" class="cesium-status-toast">{{ basemapStatus }}</div>
 
-    <!-- Loading / empty overlay -->
     <div v-if="isLoading" class="cesium-overlay">
       {{ loadMessage || '正在初始化三维视图...' }}
     </div>
@@ -387,12 +496,10 @@ onBeforeUnmount(() => {
       {{ loadMessage }}
     </div>
 
-    <!-- Data summary badge -->
     <div v-if="!isLoading && !dataEmpty" class="cesium-summary-badge">
       {{ loadMessage }}
     </div>
 
-    <!-- Cesium viewer -->
     <div ref="containerRef" style="width:100%;height:100%;"></div>
   </div>
 </template>

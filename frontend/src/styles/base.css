@@ -667,26 +667,7 @@ h1 {
   height: 10px;
   flex: 0 0 auto;
   border-radius: 999px;
-}
-
-.study-room-dot {
-  border: 1.5px solid var(--color-study-room);
-  background: var(--color-study-room);
-}
-
-.poi-dot {
-  border: 1.5px solid var(--color-poi);
-  background: var(--color-poi);
-}
-
-.charger-available-dot {
-  border: 1.5px solid var(--color-success);
-  background: var(--color-success);
-}
-
-.charger-full-dot {
-  border: 1.5px solid var(--color-error);
-  background: var(--color-error);
+  border: 1.5px solid;
 }
 
 /* ── Map area ────────────────────────────────────────── */
@@ -1101,4 +1082,190 @@ h1 {
   box-shadow: var(--shadow-md);
   backdrop-filter: blur(4px);
   white-space: nowrap;
+}
+
+/* ── Popup card system ──────────────────────────────── */
+
+.popup-card {
+  max-width: 240px;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.1);
+  font-family: var(--font-body);
+  line-height: 1.5;
+}
+
+.popup-card-header {
+  padding: 10px 14px;
+  color: #ffffff;
+}
+
+.popup-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.popup-card-subtitle {
+  margin-top: 2px;
+  font-size: 10px;
+  opacity: 0.85;
+}
+
+.popup-card-body {
+  padding: 12px 14px;
+  background: #ffffff;
+}
+
+.attr-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 12px;
+  font-size: 11px;
+}
+
+.attr-label {
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.attr-value {
+  color: var(--color-text);
+  font-weight: 500;
+}
+
+.popup-card-desc {
+  padding: 8px 14px 10px;
+  border-top: 1px solid var(--color-border);
+  background: #ffffff;
+  color: var(--color-text-muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+/* ── Custom marker icons ─────────────────────────────── */
+
+.custom-marker-icon {
+  background: transparent;
+  border: none;
+}
+
+/* Override Leaflet's default divIcon background */
+.leaflet-div-icon.custom-marker-icon {
+  background: transparent;
+  border: none;
+}
+
+/* ── Layer toggle ─────────────────────────────────────── */
+
+.layer-toggle {
+  display: flex;
+  gap: 3px;
+  margin-left: 8px;
+}
+
+.layer-btn {
+  padding: 3px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.layer-btn:hover {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.layer-btn.active {
+  border-color: var(--color-accent);
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: 600;
+}
+
+/* ── Cluster icon ──────────────────────────────────────── */
+
+.custom-cluster-icon {
+  background: transparent;
+  border: none;
+}
+
+.cluster-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(194, 100, 79, 0.3);
+}
+
+.cluster-icon span {
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-body);
+}
+
+/* ── Cesium InfoBox override ───────────────────────────── */
+
+.cesium-infobox-custom {
+  max-width: 260px;
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 16px rgba(0,0,0,0.12);
+  background: transparent;
+}
+
+.cesium-infobox-custom .cesium-infoBox {
+  border: none;
+  border-radius: 8px;
+  overflow: hidden;
+  background: transparent;
+}
+
+.cesium-infobox-custom .cesium-infoBox-title {
+  display: none;
+}
+
+.cesium-infobox-custom .cesium-infoBox-description {
+  padding: 0;
+  font-family: var(--font-body);
+}
+
+.cesium-infobox-custom .cesium-infoBox-close {
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+}
+
+/* ── Cesium layer toggle dark theme ───────────────────── */
+
+.cesium-layer-toggle {
+  margin-left: 0;
+}
+
+.cesium-layer-toggle .layer-btn {
+  color: #a0c8e8;
+  border-color: rgba(97, 200, 255, 0.25);
+  background: rgba(10, 20, 34, 0.5);
+}
+
+.cesium-layer-toggle .layer-btn:hover {
+  color: #ffffff;
+  border-color: #61c8ff;
+}
+
+.cesium-layer-toggle .layer-btn.active {
+  color: #ffffff;
+  border-color: #61c8ff;
+  background: rgba(97, 200, 255, 0.2);
 }
