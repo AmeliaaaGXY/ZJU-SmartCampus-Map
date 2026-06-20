@@ -10,5 +10,10 @@ __pycache__/
 Thumbs.db
 .codex-*.log
 .claude/settings.local.json
+.agents/
 .superpowers/
+skills-lock.json
+*.zip
+webgis_data_delivery/
+zju_zjg_selfstudy_spaces*/
 项目搭建指南.md
