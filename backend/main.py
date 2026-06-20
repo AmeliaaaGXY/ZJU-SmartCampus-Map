@@ -488,9 +488,11 @@ def geoserver_workspace() -> str:
 
 @app.get("/api/geoserver/status")
 async def geoserver_status() -> dict:
-    """检测 GeoServer 是否可达。"""
+    """检测 GeoServer 是否可达（使用公开 WFS 端点，无需认证）。"""
     base = geoserver_base_url()
-    url = f"{base}/rest/about/version.json"
+    workspace = geoserver_workspace()
+    # 用 WFS GetCapabilities 探测，不需要登录
+    url = f"{base}/{workspace}/ows?service=WFS&version=1.0.0&request=GetCapabilities"
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             response = await client.get(url)
