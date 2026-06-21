@@ -6,8 +6,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07948,
-          30.30955
+          120.0843,
+          30.30728
         ]
       },
       "properties": {
@@ -21,7 +21,7 @@
         "close_time": "22:30",
         "seat_total": 160,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -36,8 +36,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07948,
-          30.30955
+          120.0843,
+          30.30728
         ]
       },
       "properties": {
@@ -51,7 +51,7 @@
         "close_time": "22:30",
         "seat_total": 160,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -66,8 +66,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07948,
-          30.30955
+          120.0843,
+          30.30728
         ]
       },
       "properties": {
@@ -81,7 +81,7 @@
         "close_time": "22:30",
         "seat_total": 132,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -96,8 +96,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07128,
-          30.30699
+          120.0761,
+          30.30471
         ]
       },
       "properties": {
@@ -111,7 +111,7 @@
         "close_time": "22:30",
         "seat_total": 50,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -126,8 +126,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07128,
-          30.30699
+          120.0761,
+          30.30471
         ]
       },
       "properties": {
@@ -141,7 +141,7 @@
         "close_time": "22:30",
         "seat_total": 208,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -156,8 +156,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07128,
-          30.30699
+          120.0761,
+          30.30471
         ]
       },
       "properties": {
@@ -171,7 +171,7 @@
         "close_time": "22:30",
         "seat_total": 160,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -186,8 +186,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07128,
-          30.30699
+          120.0761,
+          30.30471
         ]
       },
       "properties": {
@@ -201,7 +201,7 @@
         "close_time": "22:30",
         "seat_total": 480,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -216,8 +216,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07128,
-          30.30699
+          120.0761,
+          30.30471
         ]
       },
       "properties": {
@@ -231,7 +231,7 @@
         "close_time": "22:30",
         "seat_total": 64,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -246,8 +246,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07128,
-          30.30699
+          120.0761,
+          30.30471
         ]
       },
       "properties": {
@@ -261,7 +261,7 @@
         "close_time": "22:30",
         "seat_total": 120,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -276,8 +276,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06304,
-          30.30253
+          120.06785,
+          30.30024
         ]
       },
       "properties": {
@@ -291,7 +291,7 @@
         "close_time": "22:30",
         "seat_total": 256,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -306,22 +306,22 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.0701,
-          30.30186
+          120.07492,
+          30.29958
         ]
       },
       "properties": {
         "id": "study_011",
         "name": "人文古籍图书馆",
         "building": "古籍馆",
-        "floor": "",
+        "floor": "/",
         "room": "",
         "type": "library",
         "open_time": "9:00",
         "close_time": "17:00",
         "seat_total": 512,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -336,8 +336,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.08033,
-          30.30575
+          120.08515,
+          30.30348
         ]
       },
       "properties": {
@@ -366,8 +366,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06803,
-          30.31047
+          120.07285,
+          30.30818
         ]
       },
       "properties": {
@@ -381,7 +381,7 @@
         "close_time": "22:30",
         "seat_total": 160,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -396,15 +396,15 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07613,
-          30.30776
+          120.08095,
+          30.30548
         ]
       },
       "properties": {
         "id": "study_014",
         "name": "西教学区连廊自习区",
         "building": "西教学楼",
-        "floor": "",
+        "floor": "/",
         "room": "",
         "type": "public",
         "open_time": "7:00",
@@ -426,8 +426,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07366,
-          30.3085
+          120.07848,
+          30.30622
         ]
       },
       "properties": {
@@ -441,7 +441,7 @@
         "close_time": "22:00",
         "seat_total": 30,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -456,13 +456,13 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06716,
-          30.31181
+          120.07198,
+          30.30952
         ]
       },
       "properties": {
         "id": "study_016",
-        "name": "瑞幸咖啡（浙大紫金港北街店）",
+        "name": "瑞幸咖啡（白沙综合楼店）",
         "building": "白沙综合楼",
         "floor": "2",
         "room": "",
@@ -471,7 +471,7 @@
         "close_time": "21:00",
         "seat_total": 46,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -486,8 +486,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06673,
-          30.31214
+          120.07155,
+          30.30985
         ]
       },
       "properties": {
@@ -501,7 +501,7 @@
         "close_time": "0:00",
         "seat_total": 20,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -516,22 +516,22 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06349,
-          30.30407
+          120.0683,
+          30.30178
         ]
       },
       "properties": {
         "id": "study_018",
         "name": "尧坤楼自习区",
         "building": "尧坤楼",
-        "floor": "",
+        "floor": "/",
         "room": "",
         "type": "public",
         "open_time": "8:00",
         "close_time": "22:00",
         "seat_total": 120,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -546,8 +546,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07698,
-          30.30943
+          120.0818,
+          30.30715
         ]
       },
       "properties": {
@@ -561,7 +561,7 @@
         "close_time": "23:30",
         "seat_total": 50,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -576,8 +576,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07356,
-          30.30829
+          120.07838,
+          30.30601
         ]
       },
       "properties": {
@@ -591,7 +591,7 @@
         "close_time": "22:00",
         "seat_total": 100,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -606,8 +606,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06703,
-          30.31154
+          120.07185,
+          30.30925
         ]
       },
       "properties": {
@@ -636,8 +636,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07826,
-          30.30929
+          120.08308,
+          30.30701
         ]
       },
       "properties": {
@@ -666,8 +666,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07963,
-          30.30967
+          120.08445,
+          30.3074
         ]
       },
       "properties": {
@@ -681,7 +681,7 @@
         "close_time": "21:30",
         "seat_total": 30,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -696,8 +696,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.08138,
-          30.30787
+          120.0862,
+          30.3056
         ]
       },
       "properties": {
@@ -711,7 +711,7 @@
         "close_time": "22:00",
         "seat_total": 20,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -726,8 +726,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07768,
-          30.31248
+          120.0825,
+          30.3102
         ]
       },
       "properties": {
@@ -741,7 +741,7 @@
         "close_time": "23:00",
         "seat_total": 60,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -756,8 +756,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07898,
-          30.31307
+          120.0838,
+          30.3108
         ]
       },
       "properties": {
@@ -771,7 +771,7 @@
         "close_time": "23:00",
         "seat_total": 60,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -786,8 +786,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07668,
-          30.31348
+          120.0815,
+          30.3112
         ]
       },
       "properties": {
@@ -801,7 +801,7 @@
         "close_time": "22:30",
         "seat_total": 30,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -816,128 +816,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07939,
-          30.30947
-        ]
-      },
-      "properties": {
-        "id": "study_028",
-        "name": "基础图书馆四楼电子阅览室",
-        "building": "基础图书馆",
-        "floor": "4",
-        "room": "",
-        "type": "library",
-        "open_time": "7:00",
-        "close_time": "22:00",
-        "seat_total": 60,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "基础图书馆四楼电子阅览室，配备高性能电脑"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.07949,
-          30.30959
-        ]
-      },
-      "properties": {
-        "id": "study_029",
-        "name": "基础图书馆五楼期刊区",
-        "building": "基础图书馆",
-        "floor": "5",
-        "room": "",
-        "type": "library",
-        "open_time": "9:00",
-        "close_time": "22:00",
-        "seat_total": 45,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": true,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "基础图书馆五楼期刊阅览区，国内外期刊齐全"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.06872,
-          30.30249
-        ]
-      },
-      "properties": {
-        "id": "study_030",
-        "name": "西区图书馆二楼艺术区",
-        "building": "西区图书馆",
-        "floor": "2",
-        "room": "",
-        "type": "library",
-        "open_time": "7:00",
-        "close_time": "22:30",
-        "seat_total": 55,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "西区图书馆二楼艺术图书区，艺术氛围浓厚"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.0687,
-          30.30246
-        ]
-      },
-      "properties": {
-        "id": "study_031",
-        "name": "西区图书馆三楼人文区",
-        "building": "西区图书馆",
-        "floor": "3",
-        "room": "",
-        "type": "library",
-        "open_time": "8:00",
-        "close_time": "22:30",
-        "seat_total": 70,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "西区图书馆三楼人文社科区，适合人文类学习"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.06799,
-          30.31154
+          120.06701,
+          30.31151
         ]
       },
       "properties": {
@@ -951,7 +831,7 @@
         "close_time": "22:30",
         "seat_total": 40,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -966,8 +846,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07254,
-          30.31137
+          120.06682,
+          30.31126
         ]
       },
       "properties": {
@@ -981,7 +861,7 @@
         "close_time": "22:30",
         "seat_total": 35,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -996,8 +876,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.0748,
-          30.31293
+          120.07842,
+          30.31315
         ]
       },
       "properties": {
@@ -1026,8 +906,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06866,
-          30.30659
+          120.07861,
+          30.31334
         ]
       },
       "properties": {
@@ -1041,7 +921,7 @@
         "close_time": "22:30",
         "seat_total": 45,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1056,8 +936,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07233,
-          30.3054
+          120.07425,
+          30.31408
         ]
       },
       "properties": {
@@ -1071,7 +951,7 @@
         "close_time": "22:30",
         "seat_total": 38,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1086,8 +966,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07537,
-          30.31067
+          120.07396,
+          30.31432
         ]
       },
       "properties": {
@@ -1116,128 +996,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07617,
-          30.30861
-        ]
-      },
-      "properties": {
-        "id": "study_038",
-        "name": "紫云学园2号楼自习区",
-        "building": "紫云学园2号楼自习区",
-        "floor": "1",
-        "room": "",
-        "type": "dormitory",
-        "open_time": "8:00",
-        "close_time": "22:30",
-        "seat_total": 36,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "宿舍区一楼，空间较小，可以讨论"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.0684,
-          30.3105
-        ]
-      },
-      "properties": {
-        "id": "study_039",
-        "name": "紫云学园4号楼自习区",
-        "building": "紫云学园4号楼自习区",
-        "floor": "1",
-        "room": "",
-        "type": "dormitory",
-        "open_time": "8:00",
-        "close_time": "22:30",
-        "seat_total": 48,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "宿舍区一楼，空间较小，可以讨论"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.07697,
-          30.30443
-        ]
-      },
-      "properties": {
-        "id": "study_040",
-        "name": "蓝田学园1号楼自习区",
-        "building": "蓝田学园1号楼自习区",
-        "floor": "1",
-        "room": "",
-        "type": "dormitory",
-        "open_time": "7:00",
-        "close_time": "22:30",
-        "seat_total": 40,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "宿舍区一楼，空间较小，可以讨论"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.07298,
-          30.30684
-        ]
-      },
-      "properties": {
-        "id": "study_041",
-        "name": "蓝田学园2号楼自习区",
-        "building": "蓝田学园2号楼自习区",
-        "floor": "1",
-        "room": "",
-        "type": "dormitory",
-        "open_time": "8:00",
-        "close_time": "22:30",
-        "seat_total": 35,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "宿舍区一楼，空间较小，可以讨论"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.07377,
-          30.3084
+          120.07143,
+          30.30975
         ]
       },
       "properties": {
@@ -1266,8 +1026,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06708,
-          30.31032
+          120.0717,
+          30.30952
         ]
       },
       "properties": {
@@ -1281,7 +1041,7 @@
         "close_time": "22:30",
         "seat_total": 30,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1296,8 +1056,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07687,
-          30.3072
+          120.0818,
+          30.30715
         ]
       },
       "properties": {
@@ -1326,8 +1086,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07689,
-          30.30728
+          120.0818,
+          30.30715
         ]
       },
       "properties": {
@@ -1356,8 +1116,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07672,
-          30.30717
+          120.0818,
+          30.30715
         ]
       },
       "properties": {
@@ -1371,7 +1131,7 @@
         "close_time": "22:00",
         "seat_total": 50,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1386,13 +1146,13 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07647,
-          30.30377
+          120.08223,
+          30.30388
         ]
       },
       "properties": {
         "id": "study_047",
-        "name": "行政楼附属楼自习室",
+        "name": "纳米行政楼附属楼自习室",
         "building": "行政楼附属楼",
         "floor": "1",
         "room": "",
@@ -1401,7 +1161,7 @@
         "close_time": "21:00",
         "seat_total": 30,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1416,8 +1176,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06759,
-          30.30573
+          120.09149,
+          30.29666
         ]
       },
       "properties": {
@@ -1446,8 +1206,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06535,
-          30.30424
+          120.08328,
+          30.29618
         ]
       },
       "properties": {
@@ -1476,8 +1236,8 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07019,
-          30.3038
+          120.08269,
+          30.29986
         ]
       },
       "properties": {
@@ -1491,7 +1251,7 @@
         "close_time": "22:00",
         "seat_total": 50,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1506,13 +1266,13 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.0737,
-          30.30251
+          120.07996,
+          30.29806
         ]
       },
       "properties": {
         "id": "study_051",
-        "name": "文科大楼D105自习室",
+        "name": "人文社科大楼成均苑4幢",
         "building": "文科大楼",
         "floor": "1",
         "room": "",
@@ -1521,7 +1281,7 @@
         "close_time": "22:00",
         "seat_total": 42,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1536,43 +1296,13 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06885,
-          30.30628
+          120.08247,
+          30.29793
         ]
       },
       "properties": {
         "id": "study_052",
-        "name": "计算机学院大楼E202自习室",
-        "building": "计算机学院大楼",
-        "floor": "2",
-        "room": "",
-        "type": "department",
-        "open_time": "8:00",
-        "close_time": "22:00",
-        "seat_total": 38,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "计算机学院大楼E202自习室，配备专业设备"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.06634,
-          30.30743
-        ]
-      },
-      "properties": {
-        "id": "study_053",
-        "name": "化学实验楼F103自习室",
+        "name": "周厚复化学实验中心自习室",
         "building": "化学实验楼",
         "floor": "1",
         "room": "",
@@ -1596,13 +1326,13 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.06786,
-          30.30814
+          120.08876,
+          30.29864
         ]
       },
       "properties": {
-        "id": "study_054",
-        "name": "物理实验楼G201自习室",
+        "id": "study_053",
+        "name": "东四物理实验教学中心自习室",
         "building": "物理实验楼",
         "floor": "2",
         "room": "",
@@ -1626,42 +1356,12 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07758,
-          30.30857
+          120.08486,
+          30.30332
         ]
       },
       "properties": {
-        "id": "study_055",
-        "name": "金港湾咖啡厅自习区",
-        "building": "金港湾",
-        "floor": "1",
-        "room": "",
-        "type": "commercial",
-        "open_time": "7:00",
-        "close_time": "0:00",
-        "seat_total": 25,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "金港湾咖啡厅内自习区域，消费可使用"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
-          120.07357,
-          30.30892
-        ]
-      },
-      "properties": {
-        "id": "study_056",
+        "id": "study_054",
         "name": "紫金港剧场休息区",
         "building": "紫金港剧场",
         "floor": "1",
@@ -1671,7 +1371,7 @@
         "close_time": "22:00",
         "seat_total": 22,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
@@ -1686,42 +1386,12 @@
       "geometry": {
         "type": "Point",
         "coordinates": [
-          120.07545,
-          30.31276
-        ]
-      },
-      "properties": {
-        "id": "study_057",
-        "name": "学生活动中心自习室",
-        "building": "学生活动中心",
-        "floor": "2",
-        "room": "",
-        "type": "public_space",
-        "open_time": "7:00",
-        "close_time": "21:30",
-        "seat_total": 30,
-        "seat_available": 0,
-        "has_power": false,
-        "noise_level": "quiet",
-        "power_outlet_level": "unknown",
-        "group_study": false,
-        "overnight_available": false,
-        "nearby_facilities": [],
-        "tags": [],
-        "description": "学生活动中心二层自习室，环境轻松"
-      }
-    },
-    {
-      "type": "Feature",
-      "geometry": {
-        "type": "Point",
-        "coordinates": [
           120.0889,
           30.30781
         ]
       },
       "properties": {
-        "id": "study_058",
+        "id": "study_055",
         "name": "东区游泳馆健身房自习区",
         "building": "游泳馆",
         "floor": "1",
@@ -1738,7 +1408,7 @@
         "overnight_available": false,
         "nearby_facilities": [],
         "tags": [],
-        "description": "一层自习区，运动后可学习，开放时间与运动场所一致，有钢琴"
+        "description": "一层自习区，运动后可学习，开放时间与运动场所一致，有钢琴，适合休闲自习"
       }
     },
     {
@@ -1751,7 +1421,7 @@
         ]
       },
       "properties": {
-        "id": "study_059",
+        "id": "study_056",
         "name": "外国语学院东五102B自习室",
         "building": "东五教学楼",
         "floor": "1",
@@ -1761,11 +1431,11 @@
         "close_time": "0:00",
         "seat_total": 25,
         "seat_available": 0,
-        "has_power": false,
+        "has_power": true,
         "noise_level": "quiet",
         "power_outlet_level": "unknown",
         "group_study": false,
-        "overnight_available": true,
+        "overnight_available": false,
         "nearby_facilities": [],
         "tags": [],
         "description": "可长时间存放个人物品，进出自由"
