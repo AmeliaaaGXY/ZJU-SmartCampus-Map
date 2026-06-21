@@ -208,7 +208,7 @@ h1 {
 
 .tab-row {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   margin-bottom: 10px;
   padding: 4px;
@@ -218,12 +218,12 @@ h1 {
 
 .tab-button {
   min-height: 30px;
-  padding: 0 8px;
+  padding: 0 4px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
   color: var(--color-text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
@@ -1268,4 +1268,186 @@ h1 {
   color: #ffffff;
   border-color: #61c8ff;
   background: rgba(97, 200, 255, 0.2);
+}
+
+/* ═══════════════════════════════════════════════════════
+   Spatial Analysis Panel
+   ═══════════════════════════════════════════════════════ */
+
+.spatial-area {
+  padding: 0 0 8px;
+}
+
+/* Sub-mode tabs (缓冲区 / 最近 POI) */
+.spatial-mode-tabs {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.spatial-tab {
+  flex: 1;
+  padding: 7px 6px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.13s, color 0.13s, border-color 0.13s;
+}
+
+.spatial-tab:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.spatial-tab.active {
+  background: var(--color-water);
+  color: #fff;
+  border-color: var(--color-water);
+}
+
+/* Config area */
+.spatial-config {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.spatial-hint {
+  font-size: 11.5px;
+  color: var(--color-text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+.spatial-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+.spatial-select {
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 12.5px;
+  cursor: pointer;
+  appearance: auto;
+}
+
+.spatial-select:focus {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 1px;
+}
+
+/* Radius / limit button row */
+.radius-row {
+  display: flex;
+  gap: 4px;
+}
+
+.radius-btn {
+  flex: 1;
+  padding: 5px 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s, border-color 0.1s;
+}
+
+.radius-btn:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.radius-btn.active {
+  background: var(--color-accent-light);
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+  font-weight: 700;
+}
+
+/* Click-active state for the "点击地图" button */
+.spatial-click-active {
+  background: var(--color-water) !important;
+  border-color: var(--color-water) !important;
+  color: #fff !important;
+  animation: pulse-border 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(69, 123, 140, 0.4); }
+  50%       { box-shadow: 0 0 0 6px rgba(69, 123, 140, 0);  }
+}
+
+/* Status note */
+.spatial-note {
+  background: var(--color-study-room-bg);
+  color: var(--color-water);
+  border-color: var(--color-study-room-border);
+}
+
+/* Clear button */
+.spatial-clear-btn {
+  align-self: flex-start;
+  font-size: 11px;
+  padding: 4px 10px;
+  margin-bottom: 8px;
+}
+
+/* Results list */
+.spatial-results {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.spatial-result-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.12s;
+}
+
+.spatial-result-card:hover {
+  border-color: var(--color-water);
+}
+
+.spatial-result-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* Distance pill */
+.dist-badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  background: var(--color-study-room-bg);
+  color: var(--color-water);
+  border-radius: 10px;
+  padding: 2px 7px;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }

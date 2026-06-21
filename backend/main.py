@@ -1,11 +1,12 @@
 import json
 import os
+from math import asin, cos, radians, sin, sqrt
 from pathlib import Path
 from typing import Any
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -488,9 +489,11 @@ def geoserver_workspace() -> str:
 
 @app.get("/api/geoserver/status")
 async def geoserver_status() -> dict:
-    """检测 GeoServer 是否可达。"""
+    """检测 GeoServer 是否可达（使用公开 WFS 端点，无需认证）。"""
     base = geoserver_base_url()
-    url = f"{base}/rest/about/version.json"
+    workspace = geoserver_workspace()
+    # 用 WFS GetCapabilities 探测，不需要登录
+    url = f"{base}/{workspace}/ows?service=WFS&version=1.0.0&request=GetCapabilities"
     try:
         async with httpx.AsyncClient(timeout=5) as client:
             response = await client.get(url)
@@ -588,4 +591,108 @@ async def recommend_study_room(request: StudyRoomRecommendationRequest) -> dict:
         "message": "未配置 AI API Key，当前使用本地规则兜底推荐。",
         "query": query,
         "recommendations": recommendations,
+    }
+
+
+# ── Spatial analysis helpers ───────────────────────────────────────────────────
+
+def _haversine_m(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Great-circle distance in metres between two WGS-84 points."""
+    R = 6_371_000
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dp = radians(lat2 - lat1)
+    dl = radians(lon2 - lon1)
+    a = sin(dp / 2) ** 2 + cos(phi1) * cos(phi2) * sin(dl / 2) ** 2
+    return 2 * R * asin(sqrt(a))
+
+
+def _point_coords(feature: dict) -> tuple[float, float] | None:
+    """Return (lon, lat) from a GeoJSON Point feature, or None."""
+    coords = feature.get("geometry", {}).get("coordinates", [])
+    if len(coords) < 2:
+        return None
+    try:
+        return float(coords[0]), float(coords[1])
+    except (TypeError, ValueError):
+        return None
+
+
+@app.get("/api/spatial/nearest-pois")
+def spatial_nearest_pois(
+    lat: float = Query(..., description="Query latitude (WGS-84)"),
+    lng: float = Query(..., description="Query longitude (WGS-84)"),
+    radius_m: float = Query(0, description="If > 0, only return POIs within this radius (metres)"),
+    category: str = Query("", description="Optional POI category filter"),
+    limit: int = Query(10, ge=1, le=50, description="Maximum results to return"),
+) -> dict:
+    """
+    Spatial nearest-POI query.
+
+    * ``radius_m = 0``  → return the nearest *limit* POIs regardless of distance.
+    * ``radius_m > 0``  → return all POIs within *radius_m* metres, up to *limit*.
+
+    Results are sorted by distance ascending.
+    """
+    poi_data = read_geojson("campus_pois.geojson")
+    results: list[dict] = []
+
+    for feature in poi_data["features"]:
+        pt = _point_coords(feature)
+        if pt is None:
+            continue
+        feat_lng, feat_lat = pt
+        dist = _haversine_m(lat, lng, feat_lat, feat_lng)
+
+        props = safe_properties(feature)
+        if category and props.get("category", "") != category:
+            continue
+        if radius_m > 0 and dist > radius_m:
+            continue
+
+        results.append({"feature": feature, "distance_m": round(dist, 1)})
+
+    results.sort(key=lambda x: x["distance_m"])
+    clipped = results[:limit]
+
+    return {
+        "query": {
+            "lat": lat,
+            "lng": lng,
+            "radius_m": radius_m if radius_m > 0 else None,
+            "category": category or None,
+            "limit": limit,
+        },
+        "count": len(clipped),
+        "results": clipped,
+    }
+
+
+@app.get("/api/spatial/nearest-study-rooms")
+def spatial_nearest_study_rooms(
+    lat: float = Query(..., description="Query latitude (WGS-84)"),
+    lng: float = Query(..., description="Query longitude (WGS-84)"),
+    radius_m: float = Query(0, description="If > 0, restrict to this radius (metres)"),
+    limit: int = Query(5, ge=1, le=20, description="Maximum results"),
+) -> dict:
+    """Return study rooms sorted by distance from (lat, lng)."""
+    sr_data = read_geojson("study_rooms.geojson")
+    results: list[dict] = []
+
+    for feature in sr_data["features"]:
+        pt = _point_coords(feature)
+        if pt is None:
+            continue
+        feat_lng, feat_lat = pt
+        dist = _haversine_m(lat, lng, feat_lat, feat_lng)
+        if radius_m > 0 and dist > radius_m:
+            continue
+        results.append({"feature": feature, "distance_m": round(dist, 1)})
+
+    results.sort(key=lambda x: x["distance_m"])
+    clipped = results[:limit]
+
+    return {
+        "query": {"lat": lat, "lng": lng, "radius_m": radius_m if radius_m > 0 else None, "limit": limit},
+        "count": len(clipped),
+        "results": clipped,
     }

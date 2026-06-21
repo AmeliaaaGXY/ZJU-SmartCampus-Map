@@ -25,6 +25,7 @@ import {
   getWmsBaseUrl,
   getWmsLayerOptions
 } from './services/geoServerService'
+import { findFeaturesWithinBuffer, findNearestFeatures } from './services/spatialService'
 
 /* ── Refs ────────────────────────────────────────────── */
 
@@ -47,6 +48,16 @@ const chargerFallbackUrl = ref('https://charger.philfan.cn/')
 const chargerApiConfigured = ref(false)
 const selectedChargerId = ref('')
 const legendExpanded = ref(false)
+
+// ── Spatial analysis state ──────────────────────────────────────────────────
+const spatialSubMode = ref('buffer')      // 'buffer' | 'nearest'
+const spatialRadius = ref(500)            // buffer radius in metres
+const spatialSelectedRoomIdx = ref(-1)    // index into studyRooms.value
+const spatialResults = ref([])            // [{ feature, distance_m }]
+const spatialMessage = ref('')
+const spatialClickMode = ref(false)       // waiting for map click in nearest-POI mode
+const spatialCategoryFilter = ref('')     // POI category filter ('' = all)
+const spatialNearestLimit = ref(8)        // how many nearest POIs to show
 const viewMode = ref('2d') // '2d' | '3d'
 const activeLayer = ref('all') // 'all' | 'study-rooms' | 'pois' | 'chargers'
 
@@ -112,6 +123,9 @@ async function toggleGeoServer() {
 /* ── GeoServer WMS layer ──────────────────────────────── */
 
 let wmsLayer = null
+let spatialBufferCircle = null   // Leaflet Circle for buffer visualisation
+let spatialResultLayer = null    // LayerGroup containing result circle-markers
+let spatialQueryMarker = null    // CircleMarker marking the clicked query point
 
 function addWmsLayer() {
   if (!map || wmsLayer) return
@@ -131,6 +145,168 @@ function removeWmsLayer() {
   if (wmsLayer && map) {
     map.removeLayer(wmsLayer)
     wmsLayer = null
+  }
+}
+
+/* ── Spatial analysis ─────────────────────────────────── */
+
+const POI_CATEGORY_LABELS = {
+  teaching: '教学楼',
+  canteen: '食堂',
+  library: '图书馆',
+  museum: '博物馆',
+  service: '服务设施',
+  scenic: '景观',
+  other: '其他',
+}
+
+function getCategoryLabel(cat) {
+  return POI_CATEGORY_LABELS[cat] || cat || '未知'
+}
+
+/** Remove all spatial overlay layers from the map. */
+function clearSpatialLayers() {
+  if (spatialBufferCircle && map) { map.removeLayer(spatialBufferCircle); spatialBufferCircle = null }
+  if (spatialResultLayer && map) { map.removeLayer(spatialResultLayer); spatialResultLayer = null }
+  if (spatialQueryMarker && map) { map.removeLayer(spatialQueryMarker); spatialQueryMarker = null }
+}
+
+/** Clear overlays AND reset panel state. */
+function clearSpatialResults() {
+  clearSpatialLayers()
+  spatialResults.value = []
+  spatialMessage.value = ''
+  if (spatialClickMode.value) {
+    spatialClickMode.value = false
+    if (map) map.getContainer().style.cursor = ''
+  }
+}
+
+/**
+ * Draw the buffer circle and result markers on the map, then fit the view.
+ * @param {number}   centerLat
+ * @param {number}   centerLng
+ * @param {Array}    results      [{ feature, distance_m }]
+ * @param {number|null} radiusM   If provided, draw a buffer circle.
+ */
+function drawSpatialOverlay(centerLat, centerLng, results, radiusM = null) {
+  clearSpatialLayers()
+  if (!map) return
+
+  spatialResultLayer = L.layerGroup().addTo(map)
+
+  if (radiusM) {
+    spatialBufferCircle = L.circle([centerLat, centerLng], {
+      radius: radiusM,
+      color: '#457b8c',
+      fillColor: '#457b8c',
+      fillOpacity: 0.07,
+      weight: 2,
+      dashArray: '8 5',
+    }).addTo(map)
+  }
+
+  results.forEach(({ feature, distance_m }) => {
+    const coords = feature.geometry.coordinates
+    const props = feature.properties || {}
+    L.circleMarker([coords[1], coords[0]], {
+      radius: 9,
+      color: '#c2644f',
+      fillColor: '#f8d5cc',
+      fillOpacity: 0.92,
+      weight: 2,
+    })
+      .bindPopup(
+        `<div class="popup-card-title">${props.name || '未知'}</div>` +
+        `<div class="popup-card-subtitle">${getCategoryLabel(props.category)} · ${distance_m} m</div>` +
+        (props.description ? `<div class="popup-card-desc">${props.description}</div>` : '')
+      )
+      .addTo(spatialResultLayer)
+  })
+
+  // Fit map to show all results
+  if (radiusM && spatialBufferCircle) {
+    map.fitBounds(spatialBufferCircle.getBounds(), { padding: [30, 30], maxZoom: 17 })
+  } else if (results.length) {
+    const latlngs = results.map(r => [r.feature.geometry.coordinates[1], r.feature.geometry.coordinates[0]])
+    latlngs.push([centerLat, centerLng])
+    map.fitBounds(L.latLngBounds(latlngs), { padding: [50, 50], maxZoom: 17 })
+  }
+}
+
+/** Run buffer analysis for the currently selected study room. */
+function runBufferAnalysis() {
+  const idx = spatialSelectedRoomIdx.value
+  if (idx < 0 || idx >= studyRooms.value.length) {
+    spatialMessage.value = '请先从下拉菜单选择一个自习室'
+    return
+  }
+  const feature = studyRooms.value[idx]
+  const coords = feature.geometry?.coordinates
+  if (!coords || coords.length < 2) {
+    spatialMessage.value = '该自习室没有坐标数据'
+    return
+  }
+  const [lng, lat] = coords
+  const radius = spatialRadius.value
+  const results = findFeaturesWithinBuffer(lat, lng, radius, displayPois.value)
+  spatialResults.value = results
+  spatialMessage.value = results.length
+    ? `缓冲区 ${radius} m 内找到 ${results.length} 个 POI`
+    : `${radius} m 范围内暂无校园 POI`
+  drawSpatialOverlay(lat, lng, results, radius)
+}
+
+/** Enter map-click mode for nearest-POI query. */
+function activateSpatialClickMode() {
+  spatialClickMode.value = true
+  spatialResults.value = []
+  spatialMessage.value = '请在地图上点击一个位置…'
+  if (map) map.getContainer().style.cursor = 'crosshair'
+}
+
+/** Called by the Leaflet click handler when in spatial nearest-POI mode. */
+function handleSpatialMapClick(e) {
+  const { lat, lng } = e.latlng
+  spatialClickMode.value = false
+  if (map) map.getContainer().style.cursor = ''
+
+  // Place a red dot at the query point
+  if (spatialQueryMarker && map) map.removeLayer(spatialQueryMarker)
+  spatialQueryMarker = L.circleMarker([lat, lng], {
+    radius: 6,
+    color: '#c2644f',
+    fillColor: '#c2644f',
+    fillOpacity: 1,
+    weight: 2,
+  })
+    .bindTooltip('查询点', { direction: 'top', offset: [0, -8] })
+    .addTo(map)
+
+  const category = spatialCategoryFilter.value
+  const limit = spatialNearestLimit.value
+  const results = findNearestFeatures(lat, lng, displayPois.value, limit, category)
+  spatialResults.value = results
+  spatialMessage.value = results.length
+    ? `最近 ${results.length} 个 POI${category ? `（${getCategoryLabel(category)}）` : ''}`
+    : '附近暂无 POI 数据'
+  drawSpatialOverlay(lat, lng, results)
+}
+
+/** Fly the map to a spatial result feature. */
+function focusSpatialResult(item) {
+  if (!map) return
+  const coords = item.feature.geometry?.coordinates
+  if (!coords || coords.length < 2) return
+  map.flyTo([coords[1], coords[0]], 18, { duration: 0.5 })
+  // If the result has a marker in spatialResultLayer, open its popup
+  if (spatialResultLayer) {
+    spatialResultLayer.eachLayer((layer) => {
+      const ll = layer.getLatLng && layer.getLatLng()
+      if (ll && Math.abs(ll.lat - coords[1]) < 0.00001 && Math.abs(ll.lng - coords[0]) < 0.00001) {
+        layer.openPopup()
+      }
+    })
   }
 }
 
@@ -192,6 +368,7 @@ const filteredActiveItems = computed(() => {
 })
 
 const activeEmptyText = computed(() => {
+  if (activePanel.value === 'spatial') return ''
   if (activePanel.value === 'study-rooms') return '暂无自习室数据，等待数据组补充。'
   if (activePanel.value === 'pois') {
     if (geoServerEnabled.value && !geoServerReachable.value) {
@@ -206,6 +383,11 @@ const activeEmptyText = computed(() => {
 /* ── Helpers ─────────────────────────────────────────── */
 
 function switchPanel(panel) {
+  // Cancel click-mode cursor when navigating away from spatial tab
+  if (activePanel.value === 'spatial' && spatialClickMode.value) {
+    spatialClickMode.value = false
+    if (map) map.getContainer().style.cursor = ''
+  }
   activePanel.value = panel
   searchQuery.value = ''
 }
@@ -564,6 +746,13 @@ async function init2DMap() {
   poiClusterGroup = createClusterGroup()
   chargerLayer = L.layerGroup()
 
+  // Spatial analysis: capture map clicks in nearest-POI mode
+  map.on('click', (e) => {
+    if (activePanel.value === 'spatial' && spatialSubMode.value === 'nearest' && spatialClickMode.value) {
+      handleSpatialMapClick(e)
+    }
+  })
+
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19,
     attribution: '&copy; OpenStreetMap contributors'
@@ -615,6 +804,7 @@ watch(viewMode, async (mode) => {
 })
 
 onBeforeUnmount(() => {
+  clearSpatialLayers()
   if (map) {
     map.remove()
     map = null
@@ -664,11 +854,19 @@ onBeforeUnmount(() => {
           >
             充电桩
           </button>
+          <button
+            class="tab-button"
+            :class="{ active: activePanel === 'spatial' }"
+            type="button"
+            @click="switchPanel('spatial')"
+          >
+            空间分析
+          </button>
         </div>
 
-        <!-- Search (not for chargers tab) -->
+        <!-- Search (not for chargers or spatial tab) -->
         <input
-          v-if="activePanel !== 'chargers'"
+          v-if="activePanel !== 'chargers' && activePanel !== 'spatial'"
           v-model="searchQuery"
           class="search-input"
           :placeholder="activePanel === 'study-rooms' ? '搜索自习室名称...' : '搜索 POI 名称...'"
@@ -729,6 +927,123 @@ onBeforeUnmount(() => {
           </div>
         </div>
 
+        <!-- Spatial analysis panel (spatial tab only) -->
+        <div v-if="activePanel === 'spatial'" class="spatial-area">
+          <p class="eyebrow compact">空间分析</p>
+
+          <!-- Sub-mode picker -->
+          <div class="spatial-mode-tabs">
+            <button
+              class="spatial-tab"
+              :class="{ active: spatialSubMode === 'buffer' }"
+              type="button"
+              @click="spatialSubMode = 'buffer'; clearSpatialResults()"
+            >缓冲区分析</button>
+            <button
+              class="spatial-tab"
+              :class="{ active: spatialSubMode === 'nearest' }"
+              type="button"
+              @click="spatialSubMode = 'nearest'; clearSpatialResults()"
+            >最近 POI</button>
+          </div>
+
+          <!-- ── Buffer analysis config ── -->
+          <div v-if="spatialSubMode === 'buffer'" class="spatial-config">
+            <p class="spatial-hint">选择一个自习室，在指定半径内查找周边 POI。</p>
+            <label class="spatial-label">自习室</label>
+            <select v-model="spatialSelectedRoomIdx" class="spatial-select">
+              <option :value="-1">-- 请选择 --</option>
+              <option
+                v-for="(room, i) in studyRooms"
+                :key="i"
+                :value="i"
+              >{{ (room.properties || {}).name || '未知' }}</option>
+            </select>
+            <label class="spatial-label">缓冲半径</label>
+            <div class="radius-row">
+              <button
+                v-for="r in [100, 300, 500, 1000]"
+                :key="r"
+                class="radius-btn"
+                :class="{ active: spatialRadius === r }"
+                type="button"
+                @click="spatialRadius = r"
+              >{{ r }}m</button>
+            </div>
+            <button class="primary-button" type="button" @click="runBufferAnalysis">
+              开始分析
+            </button>
+          </div>
+
+          <!-- ── Nearest POI config ── -->
+          <div v-if="spatialSubMode === 'nearest'" class="spatial-config">
+            <p class="spatial-hint">在地图上点击任意位置，查询最近的校园 POI。</p>
+            <label class="spatial-label">POI 类别</label>
+            <select v-model="spatialCategoryFilter" class="spatial-select">
+              <option value="">全部 POI</option>
+              <option value="teaching">教学楼</option>
+              <option value="canteen">食堂</option>
+              <option value="library">图书馆</option>
+              <option value="museum">博物馆</option>
+              <option value="service">服务设施</option>
+              <option value="scenic">景观</option>
+              <option value="other">其他</option>
+            </select>
+            <label class="spatial-label">显示数量</label>
+            <div class="radius-row">
+              <button
+                v-for="n in [3, 5, 8, 10]"
+                :key="n"
+                class="radius-btn"
+                :class="{ active: spatialNearestLimit === n }"
+                type="button"
+                @click="spatialNearestLimit = n"
+              >{{ n }} 个</button>
+            </div>
+            <button
+              class="primary-button"
+              :class="{ 'spatial-click-active': spatialClickMode }"
+              type="button"
+              :disabled="spatialClickMode"
+              @click="activateSpatialClickMode"
+            >
+              {{ spatialClickMode ? '⊙ 等待地图点击…' : '📍 点击地图选点' }}
+            </button>
+          </div>
+
+          <!-- Status message -->
+          <p v-if="spatialMessage" class="note spatial-note">{{ spatialMessage }}</p>
+
+          <!-- Clear button -->
+          <button
+            v-if="spatialResults.length"
+            class="secondary-button spatial-clear-btn"
+            type="button"
+            @click="clearSpatialResults"
+          >清除结果</button>
+
+          <!-- Results list -->
+          <div v-if="spatialResults.length" class="spatial-results">
+            <div
+              v-for="(item, i) in spatialResults"
+              :key="i"
+              class="spatial-result-card"
+            >
+              <div class="spatial-result-head">
+                <span class="place-name">{{ (item.feature.properties || {}).name || '未知' }}</span>
+                <span class="dist-badge">{{ item.distance_m }}&thinsp;m</span>
+              </div>
+              <span class="place-meta">{{ getCategoryLabel((item.feature.properties || {}).category) }}</span>
+              <button
+                class="secondary-button"
+                type="button"
+                style="margin-top:6px;font-size:11px;padding:4px 10px;align-self:flex-start"
+                @click="focusSpatialResult(item)"
+              >在地图查看</button>
+            </div>
+          </div>
+        </div>
+
         <!-- Charger info (chargers tab only) -->
         <div v-if="activePanel === 'chargers'" class="charger-info">
           <p v-if="chargerIsLoading" class="note">正在请求 ZJU-Charger API...</p>
@@ -751,12 +1066,12 @@ onBeforeUnmount(() => {
 
         <!-- Unified list -->
         <p
-          v-if="filteredActiveItems.length === 0 && !(activePanel === 'chargers' && chargerIsLoading)"
+          v-if="filteredActiveItems.length === 0 && !(activePanel === 'chargers' && chargerIsLoading) && activePanel !== 'spatial'"
           class="empty-state"
         >
           {{ searchQuery ? '未找到匹配项。' : activeEmptyText }}
         </p>
-        <div v-else-if="filteredActiveItems.length" class="scrollable-list">
+        <div v-else-if="filteredActiveItems.length && activePanel !== 'spatial'" class="scrollable-list">
           <div class="place-list">
             <button
               v-for="(item, index) in filteredActiveItems"
